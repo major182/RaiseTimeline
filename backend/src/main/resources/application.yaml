@@ -1,0 +1,17 @@
+spring:
+  application:
+    name: raisetimeline
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/raisetimeline}
+    username: ${DB_USER:raisetimeline}
+    password: ${DB_PASSWORD:raisetimeline}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
