@@ -6,10 +6,13 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.request.AbstractMockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.test.web.servlet.request.MockMultipartHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
 /**
@@ -59,6 +62,22 @@ public class ApiClient {
         return perform(MockMvcRequestBuilders.put(path).contentType(MediaType.APPLICATION_JSON).content(json));
     }
 
+    /**
+     * multipart/form-data で POST する（投稿の作成など）。フォームの項目は名前と値を交互に並べる。
+     *
+     * @param files 添付するファイル（なければ空の配列）
+     */
+    public ResultActions multipart(String path, MockMultipartFile[] files, String... fields) throws Exception {
+        MockMultipartHttpServletRequestBuilder builder = MockMvcRequestBuilders.multipart(path);
+        for (MockMultipartFile file : files) {
+            builder.file(file);
+        }
+        for (int i = 0; i + 1 < fields.length; i += 2) {
+            builder.param(fields[i], fields[i + 1]);
+        }
+        return perform(builder);
+    }
+
     public ResultActions patch(String path, String json) throws Exception {
         return perform(MockMvcRequestBuilders.patch(path).contentType(MediaType.APPLICATION_JSON).content(json));
     }
@@ -89,7 +108,7 @@ public class ApiClient {
         cookies.put(cookie.getName(), cookie);
     }
 
-    private ResultActions perform(MockHttpServletRequestBuilder builder) throws Exception {
+    private ResultActions perform(AbstractMockHttpServletRequestBuilder<?> builder) throws Exception {
         if (accessToken != null) {
             builder.header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken);
         }
