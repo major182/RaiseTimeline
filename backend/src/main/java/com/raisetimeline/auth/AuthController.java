@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -45,6 +46,14 @@ public class AuthController {
     @PostMapping("/api/auth/logout")
     ResponseEntity<Void> logout(HttpServletRequest request, HttpServletResponse response) {
         sessionLogin.logout(request, response);
+        return ResponseEntity.noContent().build();
+    }
+
+    /** パスワードの変更。 */
+    @PutMapping("/api/me/password")
+    ResponseEntity<Void> changePassword(
+            @AuthenticationPrincipal AuthenticatedUser principal, @Valid @RequestBody ChangePasswordRequest body) {
+        authService.changePassword(principal, body);
         return ResponseEntity.noContent().build();
     }
 

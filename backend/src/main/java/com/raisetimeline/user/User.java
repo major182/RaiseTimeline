@@ -94,6 +94,11 @@ public class User {
         lockedUntil = null;
     }
 
+    /** パスワードを変える。ハッシュにした値を受け取る（元のパスワードは保存しない。BR-05）。 */
+    public void changePasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
+    }
+
     @PrePersist
     void onCreate() {
         createdAt = Instant.now();

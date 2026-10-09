@@ -12,6 +12,7 @@ public enum FieldErrorCode {
     EMAIL_TAKEN("このメールアドレスは既に使われています"),
     PASSWORD_WEAK("8〜72 文字で、英字と数字をそれぞれ 1 文字以上含めてください"),
     PASSWORD_MISMATCH("パスワードが一致しません"),
+    CURRENT_PASSWORD_WRONG("現在のパスワードが違います"),
     USERNAME_INVALID("4〜15 文字の半角英数字と「_」で入力してください"),
     USERNAME_TAKEN("このユーザー名は既に使われています"),
     DISPLAY_NAME_LENGTH("1〜50 文字で入力してください"),

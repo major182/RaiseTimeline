@@ -89,6 +89,18 @@ public class AuthService {
         return user;
     }
 
+    /** パスワードを変える（F-AU-05）。今のパスワードが違えば、その入力欄の誤りとして返す。 */
+    @Transactional
+    public void changePassword(AuthenticatedUser principal, ChangePasswordRequest request) {
+        User user = currentUser(principal);
+        if (!passwordEncoder.matches(request.currentPassword(), user.getPasswordHash())) {
+            throw new ApiException(
+                    ErrorCode.CURRENT_PASSWORD_WRONG,
+                    List.of(FieldErrorDetail.of("currentPassword", FieldErrorCode.CURRENT_PASSWORD_WRONG)));
+        }
+        user.changePasswordHash(passwordEncoder.encode(request.newPassword()));
+    }
+
     @Transactional(readOnly = true)
     public User currentUser(AuthenticatedUser principal) {
         // セッションが残っていても、利用者が消えていればログインしていない扱いにする

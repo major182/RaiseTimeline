@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |---|---|
 | 文書番号 | 05 |
-| 版数 | 0.1 |
+| 版数 | 0.2 |
 | 作成日 | 2026-10-09 |
 | 作成者 | major182 |
 | 前提となる文書 | [01 要件定義書](01_requirements.md)、[01-1 機能一覧](01-1_feature-list.md)、[03 DB 設計書](03_db-design.md)、[04 画面設計書](04_screen-design.md) |
@@ -45,7 +45,7 @@ React（画面）と Spring Boot（サーバー）の**約束ごと**。URL・�
 | 有効期限 | 最後の操作から 7 日（BR-07） |
 | ログインが不要な API | `GET /api/auth/csrf`、`POST /api/auth/signup`、`POST /api/auth/login`、`GET /actuator/health` |
 | ログインしていないとき | 上以外の `/api/**` は **401**（`UNAUTHENTICATED`）。ログイン画面へのリダイレクトはしない（画面が 401 を見て移動する） |
-| CSRF | Spring Security の `csrf(c -> c.spa())`。画面は起動時に `GET /api/auth/csrf` で `XSRF-TOKEN` Cookie を受け取り、**GET 以外**の通信でその値を `X-XSRF-TOKEN` ヘッダーに入れる。ログイン・ログアウトの後は値が変わるので Cookie から読み直す。不一致は **403**（`CSRF_INVALID`） |
+| CSRF | Spring Security の `csrf(c -> c.spa())`。画面は起動時に `GET /api/auth/csrf` で `XSRF-TOKEN` Cookie を受け取り、**GET 以外**の通信でその値を `X-XSRF-TOKEN` ヘッダーに入れる。ログインの後は新しい値の Cookie が返るので、Cookie から読み直す。ログアウトの後は Cookie が消えるので、`GET /api/auth/csrf` を呼び直す。不一致は **403**（`CSRF_INVALID`） |
 | CORS | 設定しない（画面と API が同じオリジン。開発中も Vite の proxy を通す） |
 
 ### 2.3 状態コード
@@ -70,7 +70,6 @@ React（画面）と Spring Boot（サーバー）の**約束ごと**。URL・�
 
 ```json
 {
-  "type": "about:blank",
   "title": "Bad Request",
   "status": 400,
   "detail": "入力内容を確認してください",
@@ -82,6 +81,7 @@ React（画面）と Spring Boot（サーバー）の**約束ごと**。URL・�
 }
 ```
 
+- `type` は既定値（`about:blank`）のため、Spring が省略して返す
 - `detail`・`message` は画面にそのまま出せる日本語（画面設計書の文言と同じ）
 - `errors` は入力欄ごとの誤り。400（`VALIDATION_FAILED`）と 409 のときだけ付ける
 - 形式のチェックで誤りがあれば 400 だけを返し、重複のチェック（409）はしない
@@ -114,6 +114,7 @@ React（画面）と Spring Boot（サーバー）の**約束ごと**。URL・�
 | `EMAIL_TAKEN` | メールアドレスが使われている（409） | E-03 |
 | `PASSWORD_WEAK` | パスワードの条件 | E-04 |
 | `PASSWORD_MISMATCH` | パスワード（確認）が違う | E-05 |
+| `CURRENT_PASSWORD_WRONG` | 今のパスワードが違う（パスワードの変更） | E-22 |
 | `USERNAME_INVALID` | ユーザー名の形式 | E-06 |
 | `USERNAME_TAKEN` | ユーザー名が使われている（409） | E-07 |
 | `DISPLAY_NAME_LENGTH` | 表示名の長さ | E-08 |
@@ -300,3 +301,4 @@ UserSummary ＋ `followingCount`（フォロー数）・`followerCount`（フォ
 | 版数 | 日付 | 内容 |
 |---|---|---|
 | 0.1 | 2026-10-09 | 初版 |
+| 0.2 | 2026-10-09 | 認証の実装に合わせて更新：エラーの例から type を外した（既定値は省略される）、ログアウト後は CSRF トークンを取り直す、入力欄の誤りに CURRENT_PASSWORD_WRONG を追加 |
