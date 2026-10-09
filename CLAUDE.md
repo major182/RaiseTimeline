@@ -41,7 +41,7 @@
 1. Issue を作る（本文：`## 目的` / `## やること`（チェックリスト）/ `## 完了の条件`）
 2. `git switch main && git pull` → 最新の `main` からブランチを切る
 3. 実装してこまめにコミット
-4. **チェックを通す**：backend は `./gradlew build`、frontend は `npm run lint` と `npm run build`（まとめて実行するコマンドと CI は、静的チェックの導入時に作る）
+4. **チェックを通す**：`node scripts/check.mjs`（backend の整形・lint・テストと、frontend の型・lint・整形をまとめて実行。backend のテストは Docker を使うので、Docker Desktop を起動しておく）。CI でも同じチェックが動く。整形のずれは backend は `./gradlew spotlessApply`、frontend は `npm run format` で自動で直せる
 5. **プッシュ前に `git fetch`** — `main` が動いていないか、PR がマージ済みでないかを確かめる
 6. プッシュして PR を作る。本文に `Closes #<Issue番号>`
 7. **PR の状態と CI の結果を確認する（1.5）**
