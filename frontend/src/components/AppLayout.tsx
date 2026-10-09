@@ -1,10 +1,13 @@
+import Add from '@mui/icons-material/Add'
 import Home from '@mui/icons-material/Home'
 import {
   BottomNavigation,
   BottomNavigationAction,
   Box,
+  Button,
   ButtonBase,
   Drawer,
+  Fab,
   List,
   ListItemButton,
   ListItemIcon,
@@ -23,6 +26,7 @@ import { logout } from '../api/auth'
 import { ME_QUERY_KEY, useMe } from '../auth/useMe'
 import { QUERY_KEYS } from '../queryCache'
 import { ConfirmDialog } from './ConfirmDialog'
+import { PostComposer } from './PostComposer'
 import { useNotify } from './SnackbarProvider'
 import { UserAvatar } from './UserAvatar'
 
@@ -43,6 +47,7 @@ export function AppLayout() {
   const notify = useNotify()
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null)
   const [confirming, setConfirming] = useState(false)
+  const [composing, setComposing] = useState(false)
 
   const logoutMutation = useMutation({
     mutationFn: logout,
@@ -105,6 +110,17 @@ export function AppLayout() {
               <ListItemText primary="ホーム" />
             </ListItemButton>
           </List>
+          <Box sx={{ px: 2, mt: 1 }}>
+            <Button
+              variant="contained"
+              fullWidth
+              size="large"
+              onClick={() => setComposing(true)}
+              sx={{ borderRadius: 6 }}
+            >
+              投稿する
+            </Button>
+          </Box>
           {me && (
             <ButtonBase
               onClick={openMenu}
@@ -138,6 +154,17 @@ export function AppLayout() {
       </Box>
 
       {!isDesktop && (
+        // スマホの投稿ボタン。下のナビの上に浮かべる
+        <Fab
+          color="primary"
+          aria-label="投稿する"
+          onClick={() => setComposing(true)}
+          sx={{ position: 'fixed', right: 16, bottom: 72, zIndex: 'appBar' }}
+        >
+          <Add />
+        </Fab>
+      )}
+      {!isDesktop && (
         <Paper
           sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 'appBar' }}
           elevation={3}
@@ -170,6 +197,7 @@ export function AppLayout() {
       )}
 
       {accountMenu}
+      <PostComposer open={composing} onClose={() => setComposing(false)} />
       <ConfirmDialog
         open={confirming}
         title="ログアウトしますか？"

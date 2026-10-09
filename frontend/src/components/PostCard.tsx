@@ -7,6 +7,7 @@ import type { Post } from '../api/types'
 import { formatCount, formatFullTime, formatPostTime, likedViaText } from '../format'
 import { LikeButton } from './LikeButton'
 import { PostImages } from './PostImages'
+import { PostMenu } from './PostMenu'
 import { UserAvatar } from './UserAvatar'
 
 /** 一覧で本文を何行まで出すか（それを超えたら「続きを読む」）。 */
@@ -78,6 +79,7 @@ export function PostCard({ post }: { post: Post }) {
               </Link>
               {post.editedAt && '・編集済み'}
             </Typography>
+            <PostMenu post={post} />
           </Stack>
           {post.body && (
             <Typography

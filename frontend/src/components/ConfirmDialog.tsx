@@ -1,4 +1,5 @@
 import { Button, Dialog, DialogActions, DialogContent, DialogTitle } from '@mui/material'
+import { useRef } from 'react'
 
 type Props = {
   open: boolean
@@ -21,12 +22,20 @@ export function ConfirmDialog({
   onConfirm,
   onCancel,
 }: Props) {
+  const cancelRef = useRef<HTMLButtonElement>(null)
   return (
-    <Dialog open={open} onClose={onCancel} maxWidth="xs" fullWidth>
+    <Dialog
+      open={open}
+      onClose={onCancel}
+      maxWidth="xs"
+      fullWidth
+      // 開き終わったら「キャンセル」に焦点を移す。autoFocus だけだと、ダイアログが焦点を自分の枠へ移してしまう
+      slotProps={{ transition: { onEntered: () => cancelRef.current?.focus() } }}
+    >
       <DialogTitle>{title}</DialogTitle>
       {body && <DialogContent>{body}</DialogContent>}
       <DialogActions>
-        <Button onClick={onCancel} autoFocus>
+        <Button ref={cancelRef} onClick={onCancel} variant="outlined" autoFocus>
           キャンセル
         </Button>
         <Button onClick={onConfirm} variant="contained" color={danger ? 'error' : 'primary'}>

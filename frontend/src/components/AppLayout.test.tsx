@@ -30,7 +30,7 @@ describe('ログアウト（F-AU-03）', () => {
     const user = userEvent.setup()
     const dialog = await openLogoutDialog(user)
     // 確認のダイアログ（C-04）。最初はキャンセルを選んだ状態
-    expect(screen.getByRole('button', { name: 'キャンセル' })).toHaveFocus()
+    await waitFor(() => expect(screen.getByRole('button', { name: 'キャンセル' })).toHaveFocus())
     await user.click(dialog.querySelector('button.MuiButton-contained')!)
 
     expect(await screen.findByRole('heading', { name: 'ログイン' })).toBeInTheDocument()

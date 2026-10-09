@@ -2,7 +2,7 @@ import type { InfiniteData } from '@tanstack/react-query'
 import { describe, expect, it } from 'vitest'
 import type { FollowingTimeline } from './api/types'
 import { createQueryClient } from './auth/session'
-import { QUERY_KEYS, updatePost, updateUser } from './queryCache'
+import { QUERY_KEYS, prependPost, removePost, updatePost, updateUser } from './queryCache'
 import { makePost, makeUser } from './test/fixtures'
 
 function timeline(pages: FollowingTimeline[]): InfiniteData<FollowingTimeline> {
@@ -68,5 +68,46 @@ describe('キャッシュの書き換え（押した操作をすぐ画面に反�
     const queryClient = createQueryClient()
     updatePost(queryClient, 1, (p) => ({ ...p, likeCount: 9 }))
     expect(queryClient.getQueryData(QUERY_KEYS.allTimeline)).toBeUndefined()
+  })
+})
+
+describe('投稿を足す・消す', () => {
+  it('読み込み済みのタイムラインの 1 ページ目の先頭に足す', () => {
+    const queryClient = createQueryClient()
+    queryClient.setQueryData(
+      QUERY_KEYS.followingTimeline,
+      timeline([
+        { highlights: [makePost({ id: 9 })], items: [makePost({ id: 1 })], nextCursor: 'c1' },
+        { highlights: [], items: [makePost({ id: 2 })], nextCursor: null },
+      ]),
+    )
+    prependPost(queryClient, makePost({ id: 3 }))
+    const data = queryClient.getQueryData<InfiniteData<FollowingTimeline>>(
+      QUERY_KEYS.followingTimeline,
+    )!
+    expect(data.pages[0].items.map((p) => p.id)).toEqual([3, 1])
+    expect(data.pages[0].highlights.map((p) => p.id)).toEqual([9]) // ハイライトには足さない
+    expect(data.pages[1].items.map((p) => p.id)).toEqual([2])
+    // 読み込んでいないタブには何もしない
+    expect(queryClient.getQueryData(QUERY_KEYS.allTimeline)).toBeUndefined()
+  })
+
+  it('消した投稿を、すべてのページとハイライトから除く', () => {
+    const queryClient = createQueryClient()
+    queryClient.setQueryData(
+      QUERY_KEYS.followingTimeline,
+      timeline([
+        { highlights: [makePost({ id: 1 })], items: [makePost({ id: 2 })], nextCursor: 'c1' },
+        { highlights: [], items: [makePost({ id: 1 }), makePost({ id: 3 })], nextCursor: null },
+      ]),
+    )
+    removePost(queryClient, 1)
+    const data = queryClient.getQueryData<InfiniteData<FollowingTimeline>>(
+      QUERY_KEYS.followingTimeline,
+    )!
+    expect(data.pages[0].highlights).toEqual([])
+    expect(data.pages[0].items.map((p) => p.id)).toEqual([2])
+    expect(data.pages[1].items.map((p) => p.id)).toEqual([3])
+    expect(data.pages[0].nextCursor).toBe('c1')
   })
 })

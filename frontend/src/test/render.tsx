@@ -17,7 +17,7 @@ export const TEST_ME: Me = {
   email: 'me@example.com',
 }
 
-/** 返す値を API ごとに決める。関数なら、呼ばれるたびに送られた本文を受け取って Response を返す。 */
+/** 返す値を API ごとに決める。関数なら、呼ばれるたびに送られた本文（JSON を読んだ値か FormData）を受け取って Response を返す。 */
 export type ApiStub = Record<string, Response | ((body: unknown) => Response)>
 
 export function json(status: number, body: unknown): Response {
@@ -49,7 +49,9 @@ export function stubApi(stub: ApiStub) {
     const entry = all[key]
     if (!entry) throw new Error(`テストで用意していない API が呼ばれました: ${key}`)
     if (typeof entry === 'function') {
-      return entry(init?.body ? JSON.parse(init.body as string) : undefined)
+      // フォーム（FormData）はそのまま、JSON は読んで渡す
+      const body = init?.body
+      return entry(body instanceof FormData ? body : body ? JSON.parse(body as string) : undefined)
     }
     return entry.clone()
   })
