@@ -5,3 +5,7 @@ app:
     jwt-secret: RcctqyDv7lfgCRuvH0bT54L+lS3u1GnYONH1bLRcEjY=
     # 開発中は HTTP（http://localhost）で動かすため、Secure を外す。外さないとブラウザが Cookie を送らない
     cookie-secure: false
+spring:
+  flyway:
+    # 開発のときだけ、テストデータ（db/dev-data。DB 設計書 7 章）も読み込む。本番は db/migration だけ
+    locations: classpath:db/migration,classpath:db/dev-data

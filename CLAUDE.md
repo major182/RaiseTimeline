@@ -153,6 +153,8 @@ cd backend;  ./gradlew bootRun            # API（http://localhost:8080/）
 cd frontend; npm install; npm run dev     # 画面（http://localhost:5173/）
 ```
 
+- `bootRun`（開発のプロファイル）で起動すると、テストデータ（`db/dev-data/`。DB 設計書 7 章）が入る。`sato@example.com`・`suzuki@example.com`・`tanaka@example.com`、パスワードはどれも `pass1234`。本番・テストには入らない
+
 ### 4.2 注意
 
 - Docker Desktop は `C:\Users\memin\AppData\Local\Programs\DockerDesktop\Docker Desktop.exe` にある。止まっていたら起動してから `docker compose up -d`
