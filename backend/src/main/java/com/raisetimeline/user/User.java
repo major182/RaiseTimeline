@@ -16,6 +16,9 @@ import java.time.Instant;
 @Table(name = "users")
 public class User {
 
+    /** ユーザー名の形式（BR-02）。半角英数字と「_」で 4〜15 文字。登録と変更で同じものを使う。 */
+    public static final String USERNAME_PATTERN = "^[A-Za-z0-9_]{4,15}$";
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -97,6 +100,19 @@ public class User {
     /** パスワードを変える。ハッシュにした値を受け取る（元のパスワードは保存しない。BR-05）。 */
     public void changePasswordHash(String passwordHash) {
         this.passwordHash = passwordHash;
+    }
+
+    /** プロフィールを変える（F-US-02）。null の項目は変えない（送られなかった項目）。 */
+    public void updateProfile(String displayName, String username, String bio) {
+        if (displayName != null) {
+            this.displayName = displayName;
+        }
+        if (username != null) {
+            this.username = username;
+        }
+        if (bio != null) {
+            this.bio = bio;
+        }
     }
 
     @PrePersist
