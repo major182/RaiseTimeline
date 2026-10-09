@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |---|---|
 | 文書番号 | 05 |
-| 版数 | 0.3 |
+| 版数 | 0.4 |
 | 作成日 | 2026-10-09 |
 | 作成者 | major182 |
 | 前提となる文書 | [01 要件定義書](01_requirements.md)、[01-1 機能一覧](01-1_feature-list.md)、[03 DB 設計書](03_db-design.md)、[04 画面設計書](04_screen-design.md) |
@@ -294,7 +294,7 @@ UserSummary ＋ `followingCount`（フォロー数）・`followerCount`（フォ
 
 | メソッド・パス | 成功 | エラー | 画面 |
 |---|---|---|---|
-| `PUT /api/users/{userId}/follow` | 204 | 400（自分自身。BR-43）、404 | 利用者の行、SC-05 |
+| `PUT /api/users/{userId}/follow` | 204 | 400（`VALIDATION_FAILED`。自分自身。BR-43）、404 | 利用者の行、SC-05 |
 | `DELETE /api/users/{userId}/follow` | 204 | 404 | 利用者の行、SC-05 |
 | `GET /api/users/{userId}/following` | 200 一覧（UserSummary、フォローした時刻の新しい順） | 404 | SC-08 |
 | `GET /api/users/{userId}/followers` | 200 一覧（同上） | 404 | SC-08 |
@@ -324,3 +324,4 @@ UserSummary ＋ `followingCount`（フォロー数）・`followerCount`（フォ
 | 0.1 | 2026-10-09 | 初版 |
 | 0.2 | 2026-10-09 | 認証の実装に合わせて更新：エラーの例から type を外した（既定値は省略される）、ログアウト後は CSRF トークンを取り直す、入力欄の誤りに CURRENT_PASSWORD_WRONG を追加 |
 | 0.3 | 2026-10-09 | 認証を JWT 方式に変更（2.2、3.6 AuthResponse、4.1 に refresh を追加し csrf を削除） |
+| 0.4 | 2026-10-09 | フォローの実装に合わせ、自分自身のフォローの code（VALIDATION_FAILED）を明記 |

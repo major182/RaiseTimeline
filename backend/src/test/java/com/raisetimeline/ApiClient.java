@@ -45,6 +45,14 @@ public class ApiClient {
         return perform(MockMvcRequestBuilders.put(path).contentType(MediaType.APPLICATION_JSON).content(json));
     }
 
+    public ResultActions patch(String path, String json) throws Exception {
+        return perform(MockMvcRequestBuilders.patch(path).contentType(MediaType.APPLICATION_JSON).content(json));
+    }
+
+    public ResultActions delete(String path) throws Exception {
+        return perform(MockMvcRequestBuilders.delete(path));
+    }
+
     /** X-Requested-With を付けずに送る（CSRF の対策を確かめるため）。 */
     public ApiClient withoutRequestedWith() {
         sendRequestedWith = false;
