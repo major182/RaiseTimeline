@@ -43,3 +43,4 @@ cd frontend && npm install && npm run dev  # 画面（http://localhost:5173/）
 | 02 | [技術選定書](docs/02_tech-stack.md) |
 | 03 | [DB 設計書](docs/03_db-design.md) |
 | 04 | [画面設計書](docs/04_screen-design.md) |
+| 05 | [API 設計書](docs/05_api-design.md) |
