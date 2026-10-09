@@ -1,9 +1,11 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClientProvider } from '@tanstack/react-query'
 import { render } from '@testing-library/react'
 import { MemoryRouter, useLocation } from 'react-router'
 import { vi } from 'vitest'
 import { App } from '../App'
 import type { Me } from '../api/auth'
+import { SessionExpiryHandler } from '../auth/SessionExpiryHandler'
+import { createQueryClient } from '../auth/session'
 import { SnackbarProvider } from '../components/SnackbarProvider'
 
 export const TEST_ME: Me = {
@@ -56,10 +58,11 @@ function LocationProbe() {
 
 /** App を、指定した URL から表示する。 */
 export function renderApp(path: string) {
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-  return render(
+  const queryClient = createQueryClient()
+  const result = render(
     <QueryClientProvider client={queryClient}>
       <SnackbarProvider>
+        <SessionExpiryHandler />
         <MemoryRouter initialEntries={[path]}>
           <App />
           <LocationProbe />
@@ -67,6 +70,7 @@ export function renderApp(path: string) {
       </SnackbarProvider>
     </QueryClientProvider>,
   )
+  return { ...result, queryClient }
 }
 
 /** ログインしていない状態の me（401）。 */

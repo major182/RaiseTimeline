@@ -39,6 +39,11 @@ export function signup(input: SignupInput): Promise<Me> {
 
 /** ログアウトする。サーバーが CSRF トークンの Cookie を消すので、次の操作に備えて取り直す。 */
 export async function logout(): Promise<void> {
-  await request('POST', '/api/auth/logout')
+  try {
+    await request('POST', '/api/auth/logout')
+  } catch (e) {
+    // ログインの期限が切れていれば、すでにログアウトした状態と同じなので成功として扱う
+    if (!(e instanceof ApiError && e.status === 401)) throw e
+  }
   await fetchCsrfToken()
 }
