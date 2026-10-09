@@ -7,11 +7,15 @@ import com.raisetimeline.common.error.FieldErrorDetail;
 import com.raisetimeline.common.pagination.CursorPage;
 import com.raisetimeline.common.pagination.Cursors;
 import com.raisetimeline.follow.FollowRepository;
+import com.raisetimeline.image.ImageKeys;
+import com.raisetimeline.image.ImageUploads;
+import com.raisetimeline.image.ImageUploads.StoredImage;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 /** 利用者・プロフィールの業務ルール（要件定義書 BR-02・03・25・44、API 設計書 4.2）。 */
 @Service
@@ -27,12 +31,19 @@ public class UserService {
     private final FollowRepository follows;
     private final UserSummaries summaries;
     private final Cursors cursors;
+    private final ImageUploads uploads;
 
-    public UserService(UserRepository users, FollowRepository follows, UserSummaries summaries, Cursors cursors) {
+    public UserService(
+            UserRepository users,
+            FollowRepository follows,
+            UserSummaries summaries,
+            Cursors cursors,
+            ImageUploads uploads) {
         this.users = users;
         this.follows = follows;
         this.summaries = summaries;
         this.cursors = cursors;
+        this.uploads = uploads;
     }
 
     /** ID でプロフィールを取る（F-US-01）。 */
@@ -64,6 +75,26 @@ public class UserService {
         } catch (DataIntegrityViolationException e) {
             // 確かめた直後に、同じ名前で別の人が登録・変更した場合。DB の UNIQUE 索引が最後の安全網になる
             throw usernameTaken();
+        }
+        return toProfile(me, meId);
+    }
+
+    /**
+     * アイコンを変える（F-US-02、BR-24）。形式・大きさは投稿の画像と同じ（413・415）。
+     * 新しいファイルを保存してから DB を変え、DB の確定後に古いファイルを消す（API 設計書 4.2）。
+     */
+    @Transactional
+    public ProfileResponse changeAvatar(long meId, MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new ApiException(
+                    ErrorCode.VALIDATION_FAILED, List.of(FieldErrorDetail.of("file", FieldErrorCode.REQUIRED)));
+        }
+        User me = users.findById(meId).orElseThrow(() -> new ApiException(ErrorCode.UNAUTHENTICATED));
+        StoredImage stored = uploads.store(uploads.check(file), ImageKeys::avatar);
+        String old = me.changeAvatar(stored.key());
+        users.flush();
+        if (old != null) {
+            uploads.deleteAfterCommit(List.of(old));
         }
         return toProfile(me, meId);
     }

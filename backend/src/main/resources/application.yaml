@@ -5,6 +5,11 @@ spring:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/raisetimeline}
     username: ${DB_USER:raisetimeline}
     password: ${DB_PASSWORD:raisetimeline}
+  # 画像のアップロードの上限（API 設計書 5 章）。1 枚 5MB（BR-22）、1 回の送信は画像 4 枚と本文で 21MB まで。超えたら 413
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 21MB
   jpa:
     open-in-view: false
     hibernate:
@@ -27,6 +32,19 @@ app:
     highlight-after: 6h
     # 留守中のハイライトの最大の件数
     highlight-count: 3
+  # 画像の保存先（技術選定書 4.3）。開発・テストは local（ローカルのフォルダ）、本番は s3
+  storage:
+    type: ${STORAGE_TYPE:local}
+    local-dir: ${STORAGE_LOCAL_DIR:./data/media}
+    # s3 のときのバケット（非公開）。本番は環境変数で渡す
+    s3-bucket: ${S3_BUCKET:}
+    # 署名つき URL の期限（NF-SE-06）
+    url-ttl: 1h
+
+server:
+  tomcat:
+    # 上限を超えたアップロードでも、413 の応答を返せるよう本文を読み切る（既定の 2MB では接続が切られることがある）
+    max-swallow-size: 25MB
 
 management:
   endpoints:

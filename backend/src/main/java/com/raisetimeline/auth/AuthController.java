@@ -2,6 +2,7 @@ package com.raisetimeline.auth;
 
 import com.raisetimeline.common.error.ApiException;
 import com.raisetimeline.common.error.ErrorCode;
+import com.raisetimeline.image.ImageStorage;
 import com.raisetimeline.user.User;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -29,16 +30,19 @@ public class AuthController {
     private final AccessTokenService accessTokens;
     private final RefreshTokenService refreshTokens;
     private final RefreshTokenCookie cookie;
+    private final ImageStorage storage;
 
     public AuthController(
             AuthService authService,
             AccessTokenService accessTokens,
             RefreshTokenService refreshTokens,
-            RefreshTokenCookie cookie) {
+            RefreshTokenCookie cookie,
+            ImageStorage storage) {
         this.authService = authService;
         this.accessTokens = accessTokens;
         this.refreshTokens = refreshTokens;
         this.cookie = cookie;
+        this.storage = storage;
     }
 
     /** 利用者登録。登録したら、そのままログインした状態にする（トークンを発行する）。 */
@@ -65,7 +69,7 @@ public class AuthController {
         cookie.write(response, rotation.refreshToken());
         User user = authService.currentUser(new AuthenticatedUser(rotation.userId()));
         return AuthResponse.of(
-                accessTokens.issue(user.getId()), accessTokens.ttlSeconds(), MeResponse.from(user));
+                accessTokens.issue(user.getId()), accessTokens.ttlSeconds(), MeResponse.from(user, storage));
     }
 
     /** ログアウト。リフレッシュトークンを無効にして Cookie を消す（BR-07）。 */
@@ -94,12 +98,12 @@ public class AuthController {
     /** ログインしている利用者。 */
     @GetMapping("/api/auth/me")
     MeResponse me(@AuthenticationPrincipal AuthenticatedUser principal) {
-        return MeResponse.from(authService.currentUser(principal));
+        return MeResponse.from(authService.currentUser(principal), storage);
     }
 
     private AuthResponse startSession(User user, HttpServletResponse response) {
         cookie.write(response, refreshTokens.issue(user.getId()));
-        return AuthResponse.of(accessTokens.issue(user.getId()), accessTokens.ttlSeconds(), MeResponse.from(user));
+        return AuthResponse.of(accessTokens.issue(user.getId()), accessTokens.ttlSeconds(), MeResponse.from(user, storage));
     }
 
     private static void requireRequestedWith(String value) {

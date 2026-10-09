@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |---|---|
 | 文書番号 | 05 |
-| 版数 | 0.4 |
+| 版数 | 0.5 |
 | 作成日 | 2026-10-09 |
 | 作成者 | major182 |
 | 前提となる文書 | [01 要件定義書](01_requirements.md)、[01-1 機能一覧](01-1_feature-list.md)、[03 DB 設計書](03_db-design.md)、[04 画面設計書](04_screen-design.md) |
@@ -46,7 +46,7 @@ React（画面）と Spring Boot（サーバー）の**約束ごと**。URL・�
 | アクセストークン | 登録・ログイン・取り直しの応答（AuthResponse。3.6）の `accessToken` で受け取る。期限 15 分。画面はメモリにだけ置き、`Authorization: Bearer <トークン>` ヘッダーで送る |
 | リフレッシュトークン | 登録・ログイン・取り直しの応答で `REFRESH_TOKEN` Cookie として受け取る。`HttpOnly`・`Secure`・`SameSite=Strict`・`Path=/api/auth`、期限 7 日。開発環境（HTTP）だけ `Secure` を外す |
 | 取り直し | 画面の起動時と、アクセストークンの期限切れ（401）のときに `POST /api/auth/refresh` を呼ぶ。同時に何度も呼ばないよう、画面は呼び出しを1つにまとめる |
-| ログインが不要な API | `POST /api/auth/signup`、`POST /api/auth/login`、`POST /api/auth/refresh`、`POST /api/auth/logout`、`GET /actuator/health` |
+| ログインが不要な API | `POST /api/auth/signup`、`POST /api/auth/login`、`POST /api/auth/refresh`、`POST /api/auth/logout`、`GET /actuator/health`、`GET /media/**`（開発環境だけ。URL の署名で守る。4.8） |
 | ログインしていないとき | 上以外の `/api/**` は、トークンがない・期限切れ・署名が正しくないときに **401**（`UNAUTHENTICATED`）。ログイン画面へのリダイレクトはしない |
 | CSRF | アクセストークンはヘッダーで送るので、CSRF の対象外。Cookie を使う `/api/auth/refresh`・`/api/auth/logout` は、Cookie の `SameSite=Strict` に加え、ヘッダー `X-Requested-With: RaiseTimeline` を必須にする（他のサイトからはこのヘッダーを付けて送れない）。ないときは **403**（`CSRF_INVALID`） |
 | CORS | 設定しない（画面と API が同じオリジン。開発中も Vite の proxy を通す） |
@@ -246,7 +246,7 @@ UserSummary ＋ `followingCount`（フォロー数）・`followerCount`（フォ
 | `GET /api/users/recommendations` | ― | 200 `{ "items": [UserSummary × 最大 5] }` | ― | SC-03、SC-07 |
 
 - ユーザー名は大文字・小文字を区別せずに探す。自分の今のユーザー名は「使われている」にしない
-- アイコンを変えたら、古いファイルを消す
+- アイコンを変えたら、古いファイルを消す（DB の確定後）。`file` を送らなければ 400（`errors` の `REQUIRED`）
 
 ### 4.3 タイムライン
 
@@ -304,7 +304,7 @@ UserSummary ＋ `followingCount`（フォロー数）・`followerCount`（フォ
 | メソッド・パス | 内容 |
 |---|---|
 | `GET /actuator/health` | ALB のヘルスチェック。正常なら 200 `{ "status": "UP" }`、DB につながらなければ 503 |
-| `GET /media/{key}` | **開発環境だけ**。ローカルに保存した画像を返す（本番は S3 の署名つき URL）。ログインが必要 |
+| `GET /media/{key}?expires=…&signature=…` | **開発環境だけ**。ローカルに保存した画像を返す（本番は S3 の署名つき URL）。画面の `<img>` はアクセストークン（Authorization ヘッダー）を送れないため、ログインではなく、S3 と同じく**期限と署名つきの URL** で守る。署名が違う・期限切れ・ないときは 404 |
 
 ---
 
@@ -325,3 +325,4 @@ UserSummary ＋ `followingCount`（フォロー数）・`followerCount`（フォ
 | 0.2 | 2026-10-09 | 認証の実装に合わせて更新：エラーの例から type を外した（既定値は省略される）、ログアウト後は CSRF トークンを取り直す、入力欄の誤りに CURRENT_PASSWORD_WRONG を追加 |
 | 0.3 | 2026-10-09 | 認証を JWT 方式に変更（2.2、3.6 AuthResponse、4.1 に refresh を追加し csrf を削除） |
 | 0.4 | 2026-10-09 | フォローの実装に合わせ、自分自身のフォローの code（VALIDATION_FAILED）を明記 |
+| 0.5 | 2026-10-09 | 画像の実装に合わせ、開発環境の /media をログインではなく署名つき URL で守る形に変更（2.2、4.8）。アイコンの file がないときの 400 を追記 |

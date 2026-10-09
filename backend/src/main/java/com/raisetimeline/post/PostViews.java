@@ -1,6 +1,7 @@
 package com.raisetimeline.post;
 
 import com.raisetimeline.comment.CommentRepository;
+import com.raisetimeline.image.ImageStorage;
 import com.raisetimeline.like.LikeRepository;
 import com.raisetimeline.user.UserSummaries;
 import com.raisetimeline.user.UserSummary;
@@ -25,11 +26,20 @@ public class PostViews {
     private final UserSummaries summaries;
     private final CommentRepository comments;
     private final LikeRepository likes;
+    private final PostImageRepository images;
+    private final ImageStorage storage;
 
-    public PostViews(UserSummaries summaries, CommentRepository comments, LikeRepository likes) {
+    public PostViews(
+            UserSummaries summaries,
+            CommentRepository comments,
+            LikeRepository likes,
+            PostImageRepository images,
+            ImageStorage storage) {
         this.summaries = summaries;
         this.comments = comments;
         this.likes = likes;
+        this.images = images;
+        this.storage = storage;
     }
 
     /** posts と同じ順番で投稿カードを返す。 */
@@ -45,12 +55,19 @@ public class PostViews {
         Map<Long, Long> likeCounts = toMap(likes.countByPostIds(postIds));
         Map<Long, Long> commentCounts = toMap(comments.countByPostIds(postIds));
         Set<Long> likedByMe = new HashSet<>(likes.findLikedPostIdsAmong(meId, postIds));
+        // 画像は並び順のまま投稿ごとに分ける。URL は保存先のキーから署名つき URL を発行する（DB には持たない）
+        Map<Long, List<PostResponse.Image>> imagesByPost = images.findByPostIds(postIds).stream()
+                .collect(Collectors.groupingBy(
+                        PostImage::getPostId,
+                        Collectors.mapping(
+                                i -> new PostResponse.Image(storage.url(i.getStorageKey()), i.getWidth(), i.getHeight()),
+                                Collectors.toList())));
         return posts.stream()
                 .map(p -> new PostResponse(
                         p.getId(),
                         authors.get(p.getUserId()),
                         p.getBody(),
-                        List.of(),
+                        imagesByPost.getOrDefault(p.getId(), List.of()),
                         p.getCreatedAt(),
                         p.getEditedAt(),
                         likeCounts.getOrDefault(p.getId(), 0L),
