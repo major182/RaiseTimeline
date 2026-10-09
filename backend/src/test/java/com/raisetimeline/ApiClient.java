@@ -33,6 +33,20 @@ public class ApiClient {
         return perform(MockMvcRequestBuilders.get(path));
     }
 
+    /**
+     * クエリの値を付けて GET する（名前と値を交互に並べる）。値は MockMvc がエンコードする。
+     * パスに直接 {@code ?q=...} を書くと、エンコード済みの「%」がもう一度エンコードされてしまう。
+     */
+    public ResultActions get(String path, String... params) throws Exception {
+        MockHttpServletRequestBuilder builder = MockMvcRequestBuilders.get(path);
+        for (int i = 0; i + 1 < params.length; i += 2) {
+            if (params[i + 1] != null) {
+                builder.param(params[i], params[i + 1]);
+            }
+        }
+        return perform(builder);
+    }
+
     public ResultActions post(String path, String json) throws Exception {
         return perform(MockMvcRequestBuilders.post(path).contentType(MediaType.APPLICATION_JSON).content(json));
     }

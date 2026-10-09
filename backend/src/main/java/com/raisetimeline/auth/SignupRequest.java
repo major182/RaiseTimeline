@@ -1,6 +1,7 @@
 package com.raisetimeline.auth;
 
 import com.raisetimeline.common.validation.FieldsMatch;
+import com.raisetimeline.user.User;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -17,5 +18,5 @@ public record SignupRequest(
         @NotBlank(message = "REQUIRED") @Pattern(regexp = PasswordRule.PATTERN, message = "PASSWORD_WEAK")
                 String password,
         @NotBlank(message = "REQUIRED") String passwordConfirmation,
-        @NotBlank(message = "REQUIRED") @Pattern(regexp = "^[A-Za-z0-9_]{4,15}$", message = "USERNAME_INVALID")
+        @NotBlank(message = "REQUIRED") @Pattern(regexp = User.USERNAME_PATTERN, message = "USERNAME_INVALID")
                 String username) {}
