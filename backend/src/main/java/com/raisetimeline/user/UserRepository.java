@@ -3,7 +3,9 @@ package com.raisetimeline.user;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.time.Instant;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -82,4 +84,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
             nativeQuery = true)
     List<User> findRecentExcept(
             @Param("me") long me, @Param("exclude") Collection<Long> exclude, @Param("limit") int limit);
+
+    /** 最後にフォロー中タブを開いた時刻を記録する（留守中のハイライトのためだけに使う。BR-55）。 */
+    @Modifying
+    @Query("UPDATE User u SET u.lastTimelineViewedAt = :at WHERE u.id = :id")
+    int updateLastTimelineViewedAt(@Param("id") long id, @Param("at") Instant at);
 }
