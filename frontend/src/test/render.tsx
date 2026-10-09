@@ -4,6 +4,7 @@ import { MemoryRouter, useLocation } from 'react-router'
 import { vi } from 'vitest'
 import { App } from '../App'
 import type { Me } from '../api/auth'
+import { SnackbarProvider } from '../components/SnackbarProvider'
 
 export const TEST_ME: Me = {
   id: 1,
@@ -58,10 +59,12 @@ export function renderApp(path: string) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={[path]}>
-        <App />
-        <LocationProbe />
-      </MemoryRouter>
+      <SnackbarProvider>
+        <MemoryRouter initialEntries={[path]}>
+          <App />
+          <LocationProbe />
+        </MemoryRouter>
+      </SnackbarProvider>
     </QueryClientProvider>,
   )
 }

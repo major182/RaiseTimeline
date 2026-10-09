@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { BrowserRouter } from 'react-router'
 import { App } from './App'
 import { fetchCsrfToken } from './api/client'
+import { SnackbarProvider } from './components/SnackbarProvider'
 
 // Material UI のテーマ。色や文字の大きさは画面設計で決めてから、ここで設定する
 const theme = createTheme()
@@ -22,9 +23,11 @@ createRoot(document.getElementById('root')!).render(
       {/* ブラウザごとの見た目の差をなくす、Material UI 標準の下地の CSS */}
       <CssBaseline />
       <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <App />
-        </BrowserRouter>
+        <SnackbarProvider>
+          <BrowserRouter>
+            <App />
+          </BrowserRouter>
+        </SnackbarProvider>
       </QueryClientProvider>
     </ThemeProvider>
   </StrictMode>,
