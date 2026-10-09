@@ -25,10 +25,18 @@ export function RequireAuth() {
   return <Outlet />
 }
 
-/** ログインしていない人向けの画面（ログイン・利用者登録）。ログイン済みならホームへ移動する。 */
+/**
+ * ログインしていない人向けの画面（ログイン・利用者登録）。
+ * ログイン済みなら、ログイン画面へ来る前の画面（なければホーム）へ移動する。
+ * ログインに成功したときの移動もここで行う（ログイン画面は、ログインしている利用者を書き換えるだけ）。
+ */
 export function PublicOnly() {
   const { data: me, isPending } = useMe()
+  const location = useLocation()
   if (isPending) return <Loading />
-  if (me) return <Navigate to="/" replace />
+  if (me) {
+    const from = (location.state as LoginRedirectState | null)?.from
+    return <Navigate to={from ?? '/'} replace />
+  }
   return <Outlet />
 }
