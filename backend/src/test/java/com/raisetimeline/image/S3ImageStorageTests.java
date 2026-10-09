@@ -83,4 +83,9 @@ class S3ImageStorageTests {
         assertThat(url.getPath()).isEqualTo("/" + KEY);
         assertThat(url.getQuery()).contains("X-Amz-Expires=3600").contains("X-Amz-Signature=");
     }
+
+    @Test
+    void オリジンはバケットのホスト() {
+        assertThat(storage.origin()).isEqualTo("https://test-bucket.s3.ap-northeast-1.amazonaws.com");
+    }
 }

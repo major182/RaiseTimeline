@@ -3,6 +3,7 @@ package com.raisetimeline.config;
 import com.raisetimeline.auth.AuthenticatedUser;
 import com.raisetimeline.common.error.ErrorCode;
 import com.raisetimeline.common.error.ProblemDetailResponseWriter;
+import com.raisetimeline.image.ImageStorage;
 import java.util.List;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -31,22 +32,27 @@ public class SecurityConfig {
     /**
      * Content-Security-Policy（技術選定書 4.7 S-03）。
      * スクリプトは自分のサイトのものだけを動かす。Material UI がスタイルを差し込むため、style は inline を許す。
+     * 画像は、保存先が S3 のときだけ S3 のバケットのオリジンからの読み込みを許す（署名つき URL。NF-SE-06）。
      */
-    static final String CONTENT_SECURITY_POLICY = String.join(
+    static String contentSecurityPolicy(ImageStorage storage) {
+        String imageOrigin = storage.origin();
+        return String.join(
             "; ",
             "default-src 'self'",
             "script-src 'self'",
             "style-src 'self' 'unsafe-inline'",
-            "img-src 'self' data: blob:",
+            "img-src 'self' data: blob:" + (imageOrigin == null ? "" : " " + imageOrigin),
             "connect-src 'self'",
             "font-src 'self'",
             "object-src 'none'",
             "base-uri 'self'",
             "form-action 'self'",
             "frame-ancestors 'none'");
+    }
 
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http, ProblemDetailResponseWriter writer) throws Exception {
+    SecurityFilterChain securityFilterChain(
+            HttpSecurity http, ProblemDetailResponseWriter writer, ImageStorage storage) throws Exception {
         http.authorizeHttpRequests(auth -> auth
                         // ログインしていなくても使える API（API 設計書 2.2）
                         .requestMatchers(
@@ -78,7 +84,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 // アクセストークンはヘッダーで送るので、CSRF の対象外。Cookie を使う API は AuthController で守る
                 .csrf(AbstractHttpConfigurer::disable)
-                .headers(headers -> headers.contentSecurityPolicy(csp -> csp.policyDirectives(CONTENT_SECURITY_POLICY))
+                .headers(headers -> headers.contentSecurityPolicy(csp -> csp.policyDirectives(contentSecurityPolicy(storage)))
                         .referrerPolicy(referrer -> referrer.policy(ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN)))
                 .formLogin(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)

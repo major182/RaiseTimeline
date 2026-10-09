@@ -1,6 +1,7 @@
 package com.raisetimeline.image;
 
 import com.raisetimeline.config.StorageProperties;
+import java.net.URI;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
@@ -32,6 +33,13 @@ public class S3ImageStorage implements ImageStorage {
     public void delete(String key) {
         // S3 はないキーを消しても誤りにしない
         s3.deleteObject(request -> request.bucket(properties.s3Bucket()).key(key));
+    }
+
+    /** 署名つき URL と同じ形のオリジン。試しに URL を作り、そのスキームとホストを使う（リージョンの書き方を SDK に任せる）。 */
+    @Override
+    public String origin() {
+        URI url = URI.create(url("origin-probe"));
+        return url.getScheme() + "://" + url.getAuthority();
     }
 
     @Override

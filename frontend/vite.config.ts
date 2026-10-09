@@ -8,6 +8,8 @@ export default defineConfig({
     // 開発中は API を Spring Boot に転送する。ブラウザから見て同じオリジンになるので、CORS の設定がいらない
     proxy: {
       '/api': 'http://localhost:8080',
+      // 開発環境の画像（署名つき URL。API 設計書 4.8）も Spring Boot が返す
+      '/media': 'http://localhost:8080',
     },
   },
   test: {
