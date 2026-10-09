@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.raisetimeline.ApiClient;
 import com.raisetimeline.TestcontainersConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,6 +14,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import jakarta.servlet.http.Cookie;
 
@@ -24,6 +26,9 @@ class SecurityConfigTests {
 
     @Autowired
     private MockMvc mvc;
+
+    @Autowired
+    private JdbcTemplate jdbc;
 
     @Test
     void ログインしていないとAPIは401をJSONで返す() throws Exception {
@@ -50,15 +55,29 @@ class SecurityConfigTests {
     }
 
     @Test
-    void 存在しないURLは404をJSONで返す() throws Exception {
-        // signup はログインなしで通れるが、コントローラーはまだないので 404 になる
+    void CSRFトークンを付ければPOSTが通る() throws Exception {
         Cookie token = mvc.perform(get("/api/auth/csrf")).andReturn().getResponse().getCookie("XSRF-TOKEN");
-        // 画面と同じく、Cookie の値を X-XSRF-TOKEN ヘッダーに入れて送る
+        // 画面と同じく、Cookie の値を X-XSRF-TOKEN ヘッダーに入れて送る。中身が空なので、CSRF を通過して入力の誤り（400）になる
         mvc.perform(post("/api/auth/signup")
                         .cookie(token)
                         .header("X-XSRF-TOKEN", token.getValue())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+    }
+
+    @Test
+    void 存在しないURLは404をJSONで返す() throws Exception {
+        jdbc.update("DELETE FROM users WHERE username = 'notfound_test'");
+        ApiClient client = new ApiClient(mvc);
+        client.post(
+                        "/api/auth/signup",
+                        """
+                        {"email":"notfound@example.com","password":"pass1234","passwordConfirmation":"pass1234","username":"notfound_test"}
+                        """)
+                .andExpect(status().isCreated());
+        client.get("/api/no-such-api")
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("NOT_FOUND"))
                 .andExpect(jsonPath("$.detail").value("見つかりません"));
