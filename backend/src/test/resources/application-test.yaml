@@ -1,0 +1,5 @@
+# テスト用の設定（./gradlew test で有効になる）
+app:
+  auth:
+    # テスト用の署名の鍵。本番では使わない
+    jwt-secret: nvFB7cPXE+a+1YqaHZJbYbgDi178gUgtW6LhQZpyHrA=

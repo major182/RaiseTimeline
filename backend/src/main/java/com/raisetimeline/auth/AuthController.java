@@ -1,5 +1,7 @@
 package com.raisetimeline.auth;
 
+import com.raisetimeline.common.error.ApiException;
+import com.raisetimeline.common.error.ErrorCode;
 import com.raisetimeline.user.User;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -11,55 +13,98 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
-/** 認証の API（API 設計書 4.1）。業務ルールは {@link AuthService} に置き、ここでは呼ぶだけにする。 */
+/** 認証の API（API 設計書 4.1）。業務ルールは {@link AuthService} などに置き、ここでは呼ぶだけにする。 */
 @RestController
 public class AuthController {
 
+    /** Cookie を使う API で必須にするヘッダー。他のサイトからはこのヘッダーを付けて送れない（CSRF の対策）。 */
+    static final String REQUESTED_WITH = "X-Requested-With";
+
+    private static final String REQUESTED_WITH_VALUE = "RaiseTimeline";
+
     private final AuthService authService;
-    private final SessionLogin sessionLogin;
+    private final AccessTokenService accessTokens;
+    private final RefreshTokenService refreshTokens;
+    private final RefreshTokenCookie cookie;
 
-    public AuthController(AuthService authService, SessionLogin sessionLogin) {
+    public AuthController(
+            AuthService authService,
+            AccessTokenService accessTokens,
+            RefreshTokenService refreshTokens,
+            RefreshTokenCookie cookie) {
         this.authService = authService;
-        this.sessionLogin = sessionLogin;
+        this.accessTokens = accessTokens;
+        this.refreshTokens = refreshTokens;
+        this.cookie = cookie;
     }
 
-    /** 利用者登録。登録したら、そのままログインした状態にする。 */
+    /** 利用者登録。登録したら、そのままログインした状態にする（トークンを発行する）。 */
     @PostMapping("/api/auth/signup")
-    ResponseEntity<MeResponse> signup(
-            @Valid @RequestBody SignupRequest body, HttpServletRequest request, HttpServletResponse response) {
+    ResponseEntity<AuthResponse> signup(@Valid @RequestBody SignupRequest body, HttpServletResponse response) {
         User user = authService.signup(body);
-        sessionLogin.login(user.getId(), request, response);
-        return ResponseEntity.created(URI.create("/api/auth/me")).body(MeResponse.from(user));
+        return ResponseEntity.created(URI.create("/api/auth/me")).body(startSession(user, response));
     }
 
-    /** ログイン。成功したらセッションを作り、ログインしている利用者を返す。 */
+    /** ログイン。成功したらトークンを発行する。 */
     @PostMapping("/api/auth/login")
-    MeResponse login(@Valid @RequestBody LoginRequest body, HttpServletRequest request, HttpServletResponse response) {
-        User user = authService.login(body);
-        sessionLogin.login(user.getId(), request, response);
-        return MeResponse.from(user);
+    AuthResponse login(@Valid @RequestBody LoginRequest body, HttpServletResponse response) {
+        return startSession(authService.login(body), response);
     }
 
-    /** ログアウト。セッションを消し、すぐにログインしていない状態にする（BR-07）。 */
+    /** アクセストークンの取り直し。リフレッシュトークンも新しくする（ローテーション）。 */
+    @PostMapping("/api/auth/refresh")
+    AuthResponse refresh(
+            @RequestHeader(value = REQUESTED_WITH, required = false) String requestedWith,
+            HttpServletRequest request,
+            HttpServletResponse response) {
+        requireRequestedWith(requestedWith);
+        RefreshTokenService.Rotation rotation = refreshTokens.rotate(cookie.read(request));
+        cookie.write(response, rotation.refreshToken());
+        User user = authService.currentUser(new AuthenticatedUser(rotation.userId()));
+        return AuthResponse.of(
+                accessTokens.issue(user.getId()), accessTokens.ttlSeconds(), MeResponse.from(user));
+    }
+
+    /** ログアウト。リフレッシュトークンを無効にして Cookie を消す（BR-07）。 */
     @PostMapping("/api/auth/logout")
-    ResponseEntity<Void> logout(HttpServletRequest request, HttpServletResponse response) {
-        sessionLogin.logout(request, response);
+    ResponseEntity<Void> logout(
+            @RequestHeader(value = REQUESTED_WITH, required = false) String requestedWith,
+            HttpServletRequest request,
+            HttpServletResponse response) {
+        requireRequestedWith(requestedWith);
+        refreshTokens.revoke(cookie.read(request));
+        cookie.clear(response);
         return ResponseEntity.noContent().build();
     }
 
-    /** パスワードの変更。 */
+    /** パスワードの変更。他の端末のリフレッシュトークンは無効にする。 */
     @PutMapping("/api/me/password")
     ResponseEntity<Void> changePassword(
-            @AuthenticationPrincipal AuthenticatedUser principal, @Valid @RequestBody ChangePasswordRequest body) {
+            @AuthenticationPrincipal AuthenticatedUser principal,
+            @Valid @RequestBody ChangePasswordRequest body,
+            HttpServletRequest request) {
         authService.changePassword(principal, body);
+        refreshTokens.revokeOthers(principal.id(), cookie.read(request));
         return ResponseEntity.noContent().build();
     }
 
-    /** ログインしている利用者。画面は起動したときに呼び、401 ならログイン画面へ移動する。 */
+    /** ログインしている利用者。 */
     @GetMapping("/api/auth/me")
     MeResponse me(@AuthenticationPrincipal AuthenticatedUser principal) {
         return MeResponse.from(authService.currentUser(principal));
+    }
+
+    private AuthResponse startSession(User user, HttpServletResponse response) {
+        cookie.write(response, refreshTokens.issue(user.getId()));
+        return AuthResponse.of(accessTokens.issue(user.getId()), accessTokens.ttlSeconds(), MeResponse.from(user));
+    }
+
+    private static void requireRequestedWith(String value) {
+        if (!REQUESTED_WITH_VALUE.equals(value)) {
+            throw new ApiException(ErrorCode.CSRF_INVALID);
+        }
     }
 }

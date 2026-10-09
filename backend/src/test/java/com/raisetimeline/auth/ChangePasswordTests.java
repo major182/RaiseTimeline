@@ -31,7 +31,6 @@ class ChangePasswordTests {
 
     @BeforeEach
     void setUp() throws Exception {
-        jdbc.update("DELETE FROM spring_session");
         jdbc.update("DELETE FROM users");
         client = new ApiClient(mvc);
         client.post(
@@ -61,6 +60,26 @@ class ChangePasswordTests {
                         {"email":"me@example.com","password":"newpass5678"}
                         """)
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void 変更すると他の端末は取り直せなくなり今の端末は続けて使える() throws Exception {
+        ApiClient otherDevice = new ApiClient(mvc);
+        otherDevice
+                .post("/api/auth/login", """
+                        {"email":"me@example.com","password":"pass1234"}
+                        """)
+                .andExpect(status().isOk());
+
+        client.put(
+                        "/api/me/password",
+                        """
+                        {"currentPassword":"pass1234","newPassword":"newpass5678","newPasswordConfirmation":"newpass5678"}
+                        """)
+                .andExpect(status().isNoContent());
+
+        otherDevice.post("/api/auth/refresh").andExpect(status().isUnauthorized());
+        client.post("/api/auth/refresh").andExpect(status().isOk());
     }
 
     @Test

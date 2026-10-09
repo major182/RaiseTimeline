@@ -261,6 +261,7 @@ erDiagram
 | `token_hash` | TEXT | ○ | | トークンの SHA-256 のハッシュ（16 進数 64 文字）。重複を禁止 | D-9 |
 | `expires_at` | TIMESTAMPTZ | ○ | | 期限。発行の 7 日後 | BR-07 |
 | `revoked_at` | TIMESTAMPTZ | | | 無効にした日時。NULL なら有効。取り直し・ログアウト・パスワードの変更で入れる | BR-07 |
+| `revoke_reason` | TEXT | | | 無効にした理由。`ROTATED`（取り直しで使い終わった）／`LOGOUT`／`PASSWORD_CHANGED`／`REUSE_DETECTED`（使い回しを検知）。`revoked_at` と同時に入れる（CHECK） | ― |
 | `created_at` | TIMESTAMPTZ | ○ | `now()` | 発行した日時 | ― |
 
 **索引**
@@ -270,7 +271,7 @@ erDiagram
 | `refresh_tokens_token_hash_key` | `token_hash` | UNIQUE。取り直しのときにトークンを探す |
 | `refresh_tokens_user_idx` | `user_id` | 利用者のトークンをまとめて無効にする（使い回しの検知・パスワードの変更） |
 
-- **使い回しの検知**：無効にしたトークン（`revoked_at` あり）で取り直しを求められたら、その利用者の有効なトークンをすべて無効にする（技術選定書 4.1）
+- **使い回しの検知**：取り直しで使い終わったトークン（`revoke_reason = ROTATED`）で再び取り直しを求められたら、盗まれたとみなし、その利用者の有効なトークンをすべて無効にする（技術選定書 4.1）。ログアウト・パスワードの変更で無効にしたトークンが届くのは普通に起こるので、断るだけにする
 - 期限切れ・無効にしたトークンの行は、1 日に 1 回まとめて消す（無効にしてから 7 日たったもの）
 
 ---

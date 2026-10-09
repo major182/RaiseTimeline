@@ -22,7 +22,7 @@ class BackendApplicationTests {
     void アプリが起動しマイグレーションでテーブルができる() {
         var tables = jdbc.queryForList(
                 "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'", String.class);
-        assertThat(tables).contains("users", "spring_session", "spring_session_attributes");
+        assertThat(tables).contains("users", "refresh_tokens").doesNotContain("spring_session", "spring_session_attributes");
     }
 
     @Test
