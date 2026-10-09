@@ -20,4 +20,9 @@ export default defineConfig([
       globals: globals.browser,
     },
   },
+  {
+    // このルールは開発中の画面の自動更新（Fast Refresh）のためのもの。テスト用のファイルは画面に読み込まれないので外す
+    files: ['src/test/**', '**/*.test.{ts,tsx}'],
+    rules: { 'react-refresh/only-export-components': 'off' },
+  },
 ])
