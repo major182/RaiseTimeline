@@ -2,12 +2,12 @@ import { act, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import { ApiError } from '../api/client'
-import { TEST_ME, UNAUTHENTICATED, json, noContent, renderApp, stubApi } from '../test/render'
+import { TEST_ME, authResponse, json, noContent, renderApp, stubApi } from '../test/render'
 
 describe('仮のホーム画面とログアウト', () => {
   it('確認してからログアウトし、ログイン画面へ戻る', async () => {
     const fetchMock = stubApi({
-      'GET /api/auth/me': json(200, TEST_ME),
+      'POST /api/auth/refresh': authResponse(TEST_ME),
       'POST /api/auth/logout': noContent(),
     })
     renderApp('/')
@@ -24,7 +24,7 @@ describe('仮のホーム画面とログアウト', () => {
   })
 
   it('確認でキャンセルすれば、ログアウトしない', async () => {
-    const fetchMock = stubApi({ 'GET /api/auth/me': json(200, TEST_ME) })
+    const fetchMock = stubApi({ 'POST /api/auth/refresh': authResponse(TEST_ME) })
     renderApp('/')
     const user = userEvent.setup()
     await user.click(await screen.findByRole('button', { name: 'ログアウト' }))
@@ -35,10 +35,14 @@ describe('仮のホーム画面とログアウト', () => {
     expect(fetchMock.mock.calls.some((c) => c[0] === '/api/auth/logout')).toBe(false)
   })
 
-  it('ログインの期限が切れていても、ログアウトするとログイン画面へ戻る', async () => {
+  it('ログアウトに失敗したら、メッセージを出してホームに残る', async () => {
     stubApi({
-      'GET /api/auth/me': json(200, TEST_ME),
-      'POST /api/auth/logout': UNAUTHENTICATED,
+      'POST /api/auth/refresh': authResponse(TEST_ME),
+      'POST /api/auth/logout': json(500, {
+        status: 500,
+        code: 'INTERNAL_ERROR',
+        detail: 'エラーが発生しました。時間をおいてもう一度お試しください',
+      }),
     })
     renderApp('/')
     const user = userEvent.setup()
@@ -47,13 +51,17 @@ describe('仮のホーム画面とログアウト', () => {
       (await screen.findByRole('dialog')).querySelector('button.MuiButton-contained')!,
     )
 
-    expect(await screen.findByRole('heading', { name: 'ログイン' })).toBeInTheDocument()
+    expect(
+      await screen.findByText('エラーが発生しました。時間をおいてもう一度お試しください'),
+    ).toBeInTheDocument()
+    // ダイアログが閉じ終わるのを待つ（閉じる途中は、画面のほかの部分が読み上げの対象から外れている）
+    expect(await screen.findByRole('heading', { name: 'ようこそ、レイズさん' })).toBeInTheDocument()
   })
 })
 
 describe('ログインの期限切れ', () => {
   it('通信で期限切れが返ったら、メッセージを出してログイン画面へ移動する（S-02）', async () => {
-    stubApi({ 'GET /api/auth/me': json(200, TEST_ME) })
+    stubApi({ 'POST /api/auth/refresh': authResponse(TEST_ME) })
     const { queryClient } = renderApp('/')
     await screen.findByRole('heading', { name: 'ようこそ、レイズさん' })
 
@@ -75,7 +83,7 @@ describe('ログインの期限切れ', () => {
   })
 
   it('ログインの失敗（LOGIN_FAILED）は期限切れとして扱わない', async () => {
-    stubApi({ 'GET /api/auth/me': json(200, TEST_ME) })
+    stubApi({ 'POST /api/auth/refresh': authResponse(TEST_ME) })
     const { queryClient } = renderApp('/')
     await screen.findByRole('heading', { name: 'ようこそ、レイズさん' })
 
