@@ -82,3 +82,40 @@ function updatePostsByAuthor(
         ),
   )
 }
+
+/**
+ * 自分の投稿を、読み込み済みのタイムライン（フォロー中・全体）の先頭に足す（画面設計書 5.3）。
+ * まだ読み込んでいないタブは、開いたときにサーバーから取るので何もしない。
+ */
+export function prependPost(queryClient: QueryClient, post: Post) {
+  for (const key of [QUERY_KEYS.followingTimeline, QUERY_KEYS.allTimeline]) {
+    queryClient.setQueryData(key, (data: unknown) => {
+      const infinite = data as { pages: { items: Post[] }[] } | undefined
+      if (!infinite || infinite.pages.length === 0) return data
+      const [first, ...rest] = infinite.pages
+      return { ...infinite, pages: [{ ...first, items: [post, ...first.items] }, ...rest] }
+    })
+  }
+}
+
+/** 消した投稿を、投稿を含むすべてのキャッシュの一覧（items・highlights）から除く。 */
+export function removePost(queryClient: QueryClient, postId: number) {
+  queryClient.setQueriesData({ queryKey: ['posts'] }, (data: unknown) =>
+    data === undefined ? data : filterDeep(data, postId),
+  )
+}
+
+function filterDeep(data: unknown, postId: number): unknown {
+  if (Array.isArray(data)) {
+    return data.filter((v) => !(isPost(v) && v.id === postId)).map((v) => filterDeep(v, postId))
+  }
+  if (data && typeof data === 'object' && !isPost(data)) {
+    const record = data as Record<string, unknown>
+    const next: Record<string, unknown> = { ...record }
+    for (const key of ['pages', 'items', 'highlights']) {
+      if (key in record) next[key] = filterDeep(record[key], postId)
+    }
+    return next
+  }
+  return data
+}

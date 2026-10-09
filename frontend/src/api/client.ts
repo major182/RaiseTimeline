@@ -40,7 +40,10 @@ const REFRESH_PATH = '/api/auth/refresh'
 
 type Method = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
 
-/** API を呼び、JSON の本文を返す（本文がない 204 のときは undefined）。 */
+/**
+ * API を呼び、JSON の本文を返す（本文がない 204 のときは undefined）。
+ * body が FormData なら multipart/form-data で送る（投稿の作成など。API 設計書 2.1）。ほかは JSON にして送る。
+ */
 export async function request<T = void>(method: Method, path: string, body?: unknown): Promise<T> {
   const response = await send(method, path, body)
   // 期限切れなら一度だけ取り直してやり直す。認証の API 自体（ログインの失敗など）は対象外
@@ -80,19 +83,21 @@ async function refreshAccessToken(): Promise<boolean> {
 }
 
 async function send(method: Method, path: string, body?: unknown): Promise<Response> {
+  // フォーム（画像を送る API）は、ブラウザが区切りの文字を含めた Content-Type を付けるので、自分では付けない
+  const isForm = body instanceof FormData
   const headers: Record<string, string> = {
     Accept: 'application/json',
     // Cookie を使う API（取り直し・ログアウト）で必須にしているヘッダー（API 設計書 2.2 の CSRF の対策）
     'X-Requested-With': 'RaiseTimeline',
   }
-  if (body !== undefined) headers['Content-Type'] = 'application/json'
+  if (body !== undefined && !isForm) headers['Content-Type'] = 'application/json'
   const token = getAccessToken()
   if (token) headers.Authorization = `Bearer ${token}`
   try {
     return await fetch(path, {
       method,
       headers,
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body: body === undefined ? undefined : isForm ? body : JSON.stringify(body),
     })
   } catch {
     throw new ApiError(0, 'NETWORK_ERROR', NETWORK_ERROR_MESSAGE)
