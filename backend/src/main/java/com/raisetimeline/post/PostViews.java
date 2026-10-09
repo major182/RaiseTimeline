@@ -1,11 +1,14 @@
 package com.raisetimeline.post;
 
 import com.raisetimeline.comment.CommentRepository;
+import com.raisetimeline.like.LikeRepository;
 import com.raisetimeline.user.UserSummaries;
 import com.raisetimeline.user.UserSummary;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
@@ -21,10 +24,12 @@ public class PostViews {
 
     private final UserSummaries summaries;
     private final CommentRepository comments;
+    private final LikeRepository likes;
 
-    public PostViews(UserSummaries summaries, CommentRepository comments) {
+    public PostViews(UserSummaries summaries, CommentRepository comments, LikeRepository likes) {
         this.summaries = summaries;
         this.comments = comments;
+        this.likes = likes;
     }
 
     /** posts と同じ順番で投稿カードを返す。 */
@@ -37,7 +42,9 @@ public class PostViews {
         Map<Long, UserSummary> authors = summaries.ofIds(authorIds, meId).stream()
                 .collect(Collectors.toMap(UserSummary::id, Function.identity()));
         List<Long> postIds = posts.stream().map(Post::getId).toList();
+        Map<Long, Long> likeCounts = toMap(likes.countByPostIds(postIds));
         Map<Long, Long> commentCounts = toMap(comments.countByPostIds(postIds));
+        Set<Long> likedByMe = new HashSet<>(likes.findLikedPostIdsAmong(meId, postIds));
         return posts.stream()
                 .map(p -> new PostResponse(
                         p.getId(),
@@ -46,9 +53,9 @@ public class PostViews {
                         List.of(),
                         p.getCreatedAt(),
                         p.getEditedAt(),
-                        0,
+                        likeCounts.getOrDefault(p.getId(), 0L),
                         commentCounts.getOrDefault(p.getId(), 0L),
-                        false,
+                        likedByMe.contains(p.getId()),
                         null,
                         p.isOwnedBy(meId)))
                 .toList();
