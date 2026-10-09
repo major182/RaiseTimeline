@@ -9,6 +9,21 @@ spring:
     open-in-view: false
     hibernate:
       ddl-auto: validate
+  session:
+    # ログインの有効期限は最後の操作から 7 日（BR-07）
+    timeout: 7d
+    jdbc:
+      # テーブルは Flyway で作る（V2__create_spring_session.sql。NF-MA-02）
+      initialize-schema: never
+
+server:
+  servlet:
+    session:
+      cookie:
+        # JavaScript から読めないようにし、HTTPS のときだけ送る（NF-SE-02）
+        http-only: true
+        secure: true
+        same-site: lax
 
 management:
   endpoints:

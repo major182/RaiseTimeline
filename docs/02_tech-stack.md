@@ -55,7 +55,7 @@ RaiseTimeline で使う技術を決め、**なぜそれを選んだか・なぜ�
 
 | 区分 | 採用する技術 | バージョン | 備考 |
 |---|---|---|---|
-| 言語 | **Java** | 25 (LTS) | Gradle の toolchain で自動的に取得する |
+| 言語 | **Java** | 25 (LTS) | Gradle の toolchain で自動的に取得する（※2） |
 | フレームワーク | **Spring Boot** | 4.1.1 | C-01 |
 | 認証 | **Spring Security** | Spring Boot が管理 | セッション方式（4.1 参照） |
 | セッションの保存 | **Spring Session JDBC** | Spring Boot が管理 | セッションを PostgreSQL に置く（NF-AV-02） |
@@ -65,7 +65,9 @@ RaiseTimeline で使う技術を決め、**なぜそれを選んだか・なぜ�
 | S3 への保存 | **AWS SDK for Java 2.x**（S3） | 2.55.11 | 署名つき URL の発行にも使う |
 | ビルド | **Gradle**（Kotlin DSL） | 9.7.1 | |
 | テスト | JUnit 5 + **Testcontainers** | Spring Boot が管理 | テストでも本物の PostgreSQL を使う |
-| 整形・lint | Spotless・Checkstyle | 導入時に決める | static-checks-setup の手順で入れる |
+| 整形・lint | **Spotless**・**Checkstyle** | 8.10.4 / 14.3.0 | `./gradlew check` で整形・lint・テストをまとめて実行 |
+
+※2 手元では Gradle が Azul Zulu の JDK を、CI（GitHub Actions）では Temurin の JDK を使う。どちらも同じ OpenJDK 25（25.0.4.1）。配布元を Temurin に固定しようとしたが、2026-10-09 時点で Gradle のダウンロード元（foojay）に Temurin の JDK が登録されておらず、取得できなかった
 
 ### 3.3 データベース
 
