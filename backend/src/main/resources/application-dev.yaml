@@ -1,0 +1,7 @@
+# 開発用の設定（./gradlew bootRun で有効になる）
+server:
+  servlet:
+    session:
+      cookie:
+        # 開発中は HTTP（http://localhost）で動かすため、Secure を外す。外さないとブラウザが Cookie を送らない
+        secure: false

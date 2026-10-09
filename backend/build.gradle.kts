@@ -23,6 +23,9 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-flyway")
+    implementation("org.springframework.boot:spring-boot-starter-security")
+    // ログインの状態（セッション）を DB に置き、EC2 が何台でも共有できるようにする（NF-AV-02）
+    implementation("org.springframework.boot:spring-boot-starter-session-jdbc")
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-webmvc")
     implementation("org.flywaydb:flyway-database-postgresql")
@@ -31,6 +34,8 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-actuator-test")
     testImplementation("org.springframework.boot:spring-boot-starter-data-jpa-test")
     testImplementation("org.springframework.boot:spring-boot-starter-flyway-test")
+    testImplementation("org.springframework.boot:spring-boot-starter-security-test")
+    testImplementation("org.springframework.boot:spring-boot-starter-session-jdbc-test")
     testImplementation("org.springframework.boot:spring-boot-starter-validation-test")
     testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
     // テストでも本物の PostgreSQL をコンテナで起動して使う（技術選定書 3.2）
@@ -42,6 +47,11 @@ dependencies {
 
 tasks.withType<Test> {
     useJUnitPlatform()
+}
+
+// ./gradlew bootRun は開発用の設定（application-dev.yaml）で起動する
+tasks.named<org.springframework.boot.gradle.tasks.run.BootRun>("bootRun") {
+    systemProperty("spring.profiles.active", "dev")
 }
 
 // 書式（未使用の import・行末の空白・タブ）は Spotless で判定する。./gradlew spotlessApply で直せる
