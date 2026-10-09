@@ -154,6 +154,10 @@ public class User {
         return avatarKey;
     }
 
+    public Instant getLastTimelineViewedAt() {
+        return lastTimelineViewedAt;
+    }
+
     public int getFailedLoginCount() {
         return failedLoginCount;
     }

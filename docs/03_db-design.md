@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |---|---|
 | 文書番号 | 03 |
-| 版数 | 0.2 |
+| 版数 | 0.3 |
 | 作成日 | 2026-10-09 |
 | 作成者 | major182 |
 | 前提となる文書 | [01 要件定義書](01_requirements.md)、[01-1 機能一覧](01-1_feature-list.md)、[02 技術選定書](02_tech-stack.md) |
@@ -309,13 +309,16 @@ feed AS (
   UNION ALL
   -- B：フォロー中の人がいいねした、フォローしていない人の投稿。
   --    並びの時刻は「基準の時刻より前で最も新しい、フォロー中の人のいいね」
-  SELECT DISTINCT ON (l.post_id) l.post_id, l.created_at, l.user_id
-  FROM likes l
-  JOIN posts p ON p.id = l.post_id
-  WHERE l.user_id IN (SELECT followee_id FROM follows WHERE follower_id = :me)
-    AND l.created_at < :base_time
-    AND p.user_id NOT IN (SELECT user_id FROM following)
-  ORDER BY l.post_id, l.created_at DESC
+  --    UNION の片側で ORDER BY を使うため、副問い合わせに包む
+  SELECT liked.* FROM (
+    SELECT DISTINCT ON (l.post_id) l.post_id, l.created_at, l.user_id
+    FROM likes l
+    JOIN posts p ON p.id = l.post_id
+    WHERE l.user_id IN (SELECT followee_id FROM follows WHERE follower_id = :me)
+      AND l.created_at < :base_time
+      AND p.user_id NOT IN (SELECT user_id FROM following)
+    ORDER BY l.post_id, l.created_at DESC
+  ) liked
 )
 SELECT * FROM feed
 WHERE (sort_at, post_id) < (:cursor_sort_at, :cursor_post_id)        -- 2回目以降だけ
@@ -333,7 +336,7 @@ LIMIT 20;
 フォロー中タブの最初の読み込みのときだけ行う。
 
 1. `users.last_timeline_viewed_at` を読む。NULL か、今から 6 時間以内なら、ハイライトは出さない
-2. 6 時間以上前なら、その時刻から今までに投稿された、フォロー中の人（自分を除く）の投稿のうち、`いいねの数 + コメントの数 × 2` が 1 以上のものを多い順に最大 3 件取る（同じ点なら新しい順）
+2. 6 時間以上前なら（6 時間・3 件は設定値 `app.timeline`。要件定義書 Q-07）、その時刻から今までに投稿された、フォロー中の人（自分を除く）の投稿のうち、`いいねの数 + コメントの数 × 2` が 1 以上のものを多い順に最大 3 件取る（同じ点なら新しい順）
 3. `last_timeline_viewed_at` を今の時刻に更新する
 4. 取った投稿の ID をカーソルに含め、5.2 の一覧から除く
 
@@ -426,3 +429,4 @@ LIMIT 20 OFFSET :offset;
 |---|---|---|
 | 0.1 | 2026-10-09 | 初版 |
 | 0.2 | 2026-10-09 | 認証の JWT 方式への変更に合わせ、Spring Session のテーブルをやめて refresh_tokens を追加（D-9、4.7） |
+| 0.3 | 2026-10-09 | タイムラインの実装に合わせ、5.2 の SQL のいいね経由の部分を副問い合わせに包んだ（UNION の片側では ORDER BY が使えない）。5.3 の数値を設定値と明記 |

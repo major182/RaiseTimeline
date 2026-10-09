@@ -21,6 +21,12 @@ app:
     refresh-token-ttl: 7d
     # リフレッシュトークンの Cookie を HTTPS のときだけ送る（NF-SE-02）
     cookie-secure: true
+  # タイムライン（BR-52。数値は仮の値で、使ってみて調整する。要件定義書 Q-07）
+  timeline:
+    # 最後にフォロー中タブを開いてから、これだけたっていたら留守中のハイライトを出す
+    highlight-after: 6h
+    # 留守中のハイライトの最大の件数
+    highlight-count: 3
 
 management:
   endpoints:
