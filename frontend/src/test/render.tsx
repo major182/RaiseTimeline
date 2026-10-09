@@ -1,5 +1,6 @@
-import { QueryClientProvider } from '@tanstack/react-query'
+import { type QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render } from '@testing-library/react'
+import type { ReactNode } from 'react'
 import { MemoryRouter, useLocation } from 'react-router'
 import { vi } from 'vitest'
 import { App } from '../App'
@@ -33,11 +34,19 @@ export function authResponse(user: Me, accessToken = 'test-access-token') {
   return json(200, { accessToken, tokenType: 'Bearer', expiresIn: 900, user })
 }
 
-/** fetch を真似る。キーは「メソッド パス」（例：'POST /api/auth/login'）。 */
+/** ログイン後のホーム（タイムライン）の既定の応答。空の一覧。テストで同じキーを渡せば上書きできる。 */
+export const HOME_STUBS: ApiStub = {
+  'GET /api/timeline/following': json(200, { highlights: [], items: [], nextCursor: null }),
+  'GET /api/timeline/all': json(200, { items: [], nextCursor: null }),
+  'GET /api/users/recommendations': json(200, { items: [] }),
+}
+
+/** fetch を真似る。キーは「メソッド パス」（例：'POST /api/auth/login'）。ホームの API は既定の応答を使う。 */
 export function stubApi(stub: ApiStub) {
+  const all: ApiStub = { ...HOME_STUBS, ...stub }
   const fetchMock = vi.fn(async (path: string, init?: RequestInit) => {
     const key = `${init?.method ?? 'GET'} ${path}`
-    const entry = stub[key]
+    const entry = all[key]
     if (!entry) throw new Error(`テストで用意していない API が呼ばれました: ${key}`)
     if (typeof entry === 'function') {
       return entry(init?.body ? JSON.parse(init.body as string) : undefined)
@@ -63,6 +72,21 @@ export function renderApp(path: string) {
         <SessionExpiryHandler />
         <MemoryRouter initialEntries={[path]}>
           <App />
+          <LocationProbe />
+        </MemoryRouter>
+      </SnackbarProvider>
+    </QueryClientProvider>,
+  )
+  return { ...result, queryClient }
+}
+
+/** 部品だけを、画面と同じ準備（キャッシュ・知らせ・画面の切り替え）の中で表示する。 */
+export function renderWithProviders(ui: ReactNode, queryClient: QueryClient = createQueryClient()) {
+  const result = render(
+    <QueryClientProvider client={queryClient}>
+      <SnackbarProvider>
+        <MemoryRouter>
+          {ui}
           <LocationProbe />
         </MemoryRouter>
       </SnackbarProvider>

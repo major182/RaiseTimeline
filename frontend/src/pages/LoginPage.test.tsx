@@ -20,7 +20,7 @@ describe('ログイン画面（SC-01）', () => {
     renderApp('/login')
     await fillAndSubmit('me@example.com', 'pass1234')
 
-    expect(await screen.findByRole('heading', { name: 'ようこそ、レイズさん' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'ホーム' })).toBeInTheDocument()
     expect(screen.getByTestId('location')).toHaveTextContent(/^\/$/)
     const loginCall = fetchMock.mock.calls.find((c) => c[0] === '/api/auth/login')!
     expect(JSON.parse(loginCall[1]!.body as string)).toEqual({
@@ -82,7 +82,7 @@ describe('ログイン画面（SC-01）', () => {
     await fillAndSubmit('me@example.com', 'pass1234')
 
     await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(/^\/$/))
-    expect(await screen.findByRole('heading', { name: 'ようこそ、レイズさん' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'ホーム' })).toBeInTheDocument()
   })
 
   it('パスワードの表示・非表示を切り替えられる', async () => {
