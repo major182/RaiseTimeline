@@ -15,7 +15,7 @@
 
 | 区分 | 採用 |
 |---|---|
-| フロントエンド | TypeScript 6.0.3、React 19.3.0、Vite 8.3.3、React Router 8.4.0、TanStack Query 5.104.1、Node.js 24.21.0 (LTS) |
+| フロントエンド | TypeScript 6.0.3、React 19.3.0、Vite 8.3.3、Material UI 9.4.0、React Router 8.4.0、TanStack Query 5.104.1、Node.js 24.21.0 (LTS) |
 | バックエンド | Java 25 (LTS)、Spring Boot 4.1.1（Spring Security・Spring Session JDBC・Spring Data JPA・Flyway・Bean Validation）、AWS SDK for Java 2.55.11、Gradle 9.7.1（Kotlin DSL） |
 | データベース | PostgreSQL 18.6（本番は RDS、開発・テストは Docker） |
 | インフラ | AWS（**ALB・EC2・RDS・S3**、SSM パラメータストア・Session Manager、ACM）、Amazon Linux 2023、Terraform 1.16.5 + AWS プロバイダー 6.67.0、GitHub Actions |
@@ -120,6 +120,7 @@ gh pr checks <番号>                                        # ④ 実行 ID（r
 
 ### 3.2 React での書き方
 
+- 画面の部品は Material UI のものを使う。同じ役割の部品を自作しない
 - サーバーのデータの取得は TanStack Query を使う。`useEffect` で fetch を自作しない
 - 利用者の入力（投稿・コメント）を `dangerouslySetInnerHTML` で表示しない（NF-SE-05）
 - API は同じオリジンの `/api/...` を呼ぶ（開発中は Vite の proxy で backend に転送する）

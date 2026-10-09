@@ -19,7 +19,7 @@ X（旧 Twitter）のような、タイムライン形式のテキスト SNS で
 
 | 区分 | 技術 |
 |---|---|
-| フロントエンド | React 19.3.0、TypeScript 6.0.3、Vite 8.3.3 |
+| フロントエンド | React 19.3.0、TypeScript 6.0.3、Vite 8.3.3、Material UI 9.4.0 |
 | バックエンド | Java 25、Spring Boot 4.1.1 |
 | データベース | PostgreSQL 18.6 |
 | インフラ | AWS（ALB・EC2・RDS・S3）、Terraform |
