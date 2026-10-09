@@ -59,7 +59,7 @@ export function SignupPage() {
   const fieldProps = (name: keyof SignupInput) => ({
     value: form[name],
     onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
-      setForm({ ...form, [name]: e.target.value }),
+      setForm((prev) => ({ ...prev, [name]: e.target.value })),
     error: Boolean(errors[name]),
     fullWidth: true,
   })

@@ -58,7 +58,7 @@ export function LoginPage() {
             type="email"
             autoComplete="email"
             value={form.email}
-            onChange={(e) => setForm({ ...form, email: e.target.value })}
+            onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
             error={Boolean(errors.email)}
             helperText={errors.email}
             fullWidth
@@ -67,7 +67,7 @@ export function LoginPage() {
             label="パスワード"
             autoComplete="current-password"
             value={form.password}
-            onChange={(e) => setForm({ ...form, password: e.target.value })}
+            onChange={(e) => setForm((prev) => ({ ...prev, password: e.target.value }))}
             error={Boolean(errors.password)}
             helperText={errors.password}
             fullWidth
