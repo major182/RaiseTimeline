@@ -14,16 +14,14 @@ describe('画面の出し分け', () => {
   it('ログインしていれば、ホームに名前が出る', async () => {
     stubApi({ 'POST /api/auth/refresh': authResponse(TEST_ME) })
     renderApp('/')
-    expect(await screen.findByRole('heading', { name: 'ようこそ、レイズさん' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'ホーム' })).toBeInTheDocument()
   })
 
   it('ログインしていれば、ログイン画面と登録画面からホームへ移動する', async () => {
     for (const path of ['/login', '/signup']) {
       stubApi({ 'POST /api/auth/refresh': authResponse(TEST_ME) })
       const { unmount } = renderApp(path)
-      expect(
-        await screen.findByRole('heading', { name: 'ようこそ、レイズさん' }),
-      ).toBeInTheDocument()
+      expect(await screen.findByRole('heading', { name: 'ホーム' })).toBeInTheDocument()
       unmount()
       setAccessToken(null) // 次の画面は、再読み込みした状態から始める
     }

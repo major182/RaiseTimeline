@@ -34,7 +34,7 @@ describe('利用者登録画面（SC-02）', () => {
     renderApp('/signup')
     await fillAndSubmit(VALID)
 
-    expect(await screen.findByRole('heading', { name: 'ようこそ、レイズさん' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'ホーム' })).toBeInTheDocument()
     expect(await screen.findByText('ようこそ、RaiseTimeline へ')).toBeInTheDocument()
     const call = fetchMock.mock.calls.find((c) => c[0] === '/api/auth/signup')!
     expect(JSON.parse(call[1]!.body as string)).toEqual({

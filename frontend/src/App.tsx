@@ -1,9 +1,10 @@
 import { Route, Routes } from 'react-router'
 import { PublicOnly, RequireAuth } from './auth/RouteGuards'
-import { HomePage } from './pages/HomePage'
+import { AppLayout } from './components/AppLayout'
 import { LoginPage } from './pages/LoginPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { SignupPage } from './pages/SignupPage'
+import { TimelinePage } from './pages/TimelinePage'
 
 /** 画面と URL の対応（画面設計書 3 章）。 */
 export function App() {
@@ -14,7 +15,10 @@ export function App() {
         <Route path="/signup" element={<SignupPage />} />
       </Route>
       <Route element={<RequireAuth />}>
-        <Route path="/" element={<HomePage />} />
+        {/* ログイン後の画面は、ナビのある枠の中に出す */}
+        <Route element={<AppLayout />}>
+          <Route path="/" element={<TimelinePage />} />
+        </Route>
       </Route>
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
