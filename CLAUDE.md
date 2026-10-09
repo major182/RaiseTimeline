@@ -16,7 +16,7 @@
 | 区分 | 採用 |
 |---|---|
 | フロントエンド | TypeScript 6.0.3、React 19.3.0、Vite 8.3.3、Material UI 9.4.0、React Router 8.4.0、TanStack Query 5.104.1、Node.js 24.21.0 (LTS) |
-| バックエンド | Java 25 (LTS)、Spring Boot 4.1.1（Spring Security・Spring Session JDBC・Spring Data JPA・Flyway・Bean Validation）、AWS SDK for Java 2.55.11、Gradle 9.7.1（Kotlin DSL） |
+| バックエンド | Java 25 (LTS)、Spring Boot 4.1.1（Spring Security・OAuth2 Resource Server（JWT）・Spring Data JPA・Flyway・Bean Validation）、AWS SDK for Java 2.55.11、Gradle 9.7.1（Kotlin DSL） |
 | データベース | PostgreSQL 18.6（本番は RDS、開発・テストは Docker） |
 | インフラ | AWS（**ALB・EC2・RDS・S3**、SSM パラメータストア・Session Manager、ACM）、Amazon Linux 2023、Terraform 1.16.5 + AWS プロバイダー 6.67.0、GitHub Actions |
 
@@ -131,8 +131,9 @@ gh pr checks <番号>                                        # ④ 実行 ID（r
 
 ### 3.3 セキュリティ（要件定義書 6.2）
 
-- ログインはセッション（Cookie）方式。Cookie は `HttpOnly`・`Secure`・`SameSite=Lax`（NF-SE-02）
-- 状態を変える API は CSRF の対策をする（NF-SE-03）
+- ログインは JWT 方式（技術選定書 4.1）。アクセストークンは画面のメモリにだけ置き、`localStorage`・`sessionStorage` に保存しない。リフレッシュトークンは `HttpOnly`・`Secure`・`SameSite=Strict` の Cookie（NF-SE-02）
+- Cookie を使う API（取り直し・ログアウト）は `X-Requested-With` ヘッダーを必須にする（NF-SE-03）
+- XSS の対策（技術選定書 4.7）：利用者の文字は `{text}` で表示し、`dangerouslySetInnerHTML`・`eval` を使わない（ESLint で禁止）。CSP を外さない
 - パスワードは BCrypt でハッシュ化する（BR-05）
 - 画像は中身で形式を判定する。拡張子を信じない（BR-21）
 - S3 は非公開。画像は署名つき URL で見せる（NF-SE-06）

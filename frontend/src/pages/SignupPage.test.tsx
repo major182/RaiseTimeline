@@ -1,7 +1,7 @@
 import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
-import { TEST_ME, UNAUTHENTICATED, json, renderApp, stubApi } from '../test/render'
+import { TEST_ME, UNAUTHENTICATED, authResponse, json, renderApp, stubApi } from '../test/render'
 
 type Input = { email: string; password: string; confirmation: string; username: string }
 
@@ -28,8 +28,8 @@ async function fillAndSubmit(input: Input) {
 describe('利用者登録画面（SC-02）', () => {
   it('登録すると、そのままホームへ移動し、完了の知らせを出す', async () => {
     const fetchMock = stubApi({
-      'GET /api/auth/me': UNAUTHENTICATED,
-      'POST /api/auth/signup': json(201, TEST_ME),
+      'POST /api/auth/refresh': UNAUTHENTICATED,
+      'POST /api/auth/signup': authResponse(TEST_ME),
     })
     renderApp('/signup')
     await fillAndSubmit(VALID)
@@ -46,7 +46,7 @@ describe('利用者登録画面（SC-02）', () => {
   })
 
   it('画面で見つけた誤りは入力欄ごとに出し、サーバーに送らない', async () => {
-    const fetchMock = stubApi({ 'GET /api/auth/me': UNAUTHENTICATED })
+    const fetchMock = stubApi({ 'POST /api/auth/refresh': UNAUTHENTICATED })
     renderApp('/signup')
     await fillAndSubmit({ email: 'x', password: 'short', confirmation: 'other', username: 'a' })
 
@@ -61,7 +61,7 @@ describe('利用者登録画面（SC-02）', () => {
 
   it('使われているメールアドレス・ユーザー名は、サーバーの誤りを該当の入力欄の下に出す', async () => {
     stubApi({
-      'GET /api/auth/me': UNAUTHENTICATED,
+      'POST /api/auth/refresh': UNAUTHENTICATED,
       'POST /api/auth/signup': json(409, {
         status: 409,
         code: 'CONFLICT',
@@ -93,7 +93,7 @@ describe('利用者登録画面（SC-02）', () => {
 
   it('通信に失敗したら、入力欄の上にメッセージを出す', async () => {
     stubApi({
-      'GET /api/auth/me': UNAUTHENTICATED,
+      'POST /api/auth/refresh': UNAUTHENTICATED,
       'POST /api/auth/signup': json(500, {
         status: 500,
         code: 'INTERNAL_ERROR',

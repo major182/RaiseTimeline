@@ -28,17 +28,15 @@ export function json(status: number, body: unknown): Response {
 
 export const noContent = () => new Response(null, { status: 204 })
 
-/**
- * fetch を真似る。キーは「メソッド パス」（例：'POST /api/auth/login'）。
- * CSRF トークンの取得には、いつも Cookie を置いて 204 を返す。
- */
+/** 登録・ログイン・取り直しの応答（API 設計書 3.6）。 */
+export function authResponse(user: Me, accessToken = 'test-access-token') {
+  return json(200, { accessToken, tokenType: 'Bearer', expiresIn: 900, user })
+}
+
+/** fetch を真似る。キーは「メソッド パス」（例：'POST /api/auth/login'）。 */
 export function stubApi(stub: ApiStub) {
   const fetchMock = vi.fn(async (path: string, init?: RequestInit) => {
     const key = `${init?.method ?? 'GET'} ${path}`
-    if (key === 'GET /api/auth/csrf') {
-      document.cookie = 'XSRF-TOKEN=test-token; path=/'
-      return noContent()
-    }
     const entry = stub[key]
     if (!entry) throw new Error(`テストで用意していない API が呼ばれました: ${key}`)
     if (typeof entry === 'function') {
@@ -73,7 +71,7 @@ export function renderApp(path: string) {
   return { ...result, queryClient }
 }
 
-/** ログインしていない状態の me（401）。 */
+/** ログインしていない（取り直せない）ときの応答（401）。 */
 export const UNAUTHENTICATED = json(401, {
   status: 401,
   code: 'UNAUTHENTICATED',

@@ -2,9 +2,11 @@
 import '@testing-library/jest-dom/vitest'
 import { cleanup } from '@testing-library/react'
 import { afterEach, vi } from 'vitest'
+import { setAccessToken } from '../api/tokenStore'
 
 afterEach(() => {
   cleanup()
+  setAccessToken(null) // メモリのアクセストークンをテストごとに捨てる
   vi.restoreAllMocks()
   vi.unstubAllGlobals()
   // テストで置いた Cookie を消す

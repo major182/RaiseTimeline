@@ -38,31 +38,34 @@ class SignupTests {
 
     @BeforeEach
     void setUp() {
-        jdbc.update("DELETE FROM spring_session");
-        jdbc.update("DELETE FROM users");
+        jdbc.update("DELETE FROM users"); // リフレッシュトークンも ON DELETE CASCADE で消える
         client = new ApiClient(mvc);
     }
 
     @Test
-    void 登録するとログインした状態になりmeで自分を取れる() throws Exception {
+    void 登録するとトークンが発行されmeで自分を取れる() throws Exception {
         client.post("/api/auth/signup", VALID)
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", "/api/auth/me"))
-                .andExpect(jsonPath("$.username").value("raise_me"))
-                .andExpect(jsonPath("$.displayName").value("raise_me")) // 表示名はユーザー名と同じ（BR-01）
-                .andExpect(jsonPath("$.email").value("me@example.com"))
-                .andExpect(jsonPath("$.avatarUrl").isEmpty());
-        assertThat(client.cookie("SESSION")).isNotNull(); // Cookie の属性は SessionCookieTests で確かめる
+                .andExpect(jsonPath("$.accessToken").isNotEmpty())
+                .andExpect(jsonPath("$.tokenType").value("Bearer"))
+                .andExpect(jsonPath("$.expiresIn").value(900))
+                .andExpect(jsonPath("$.user.username").value("raise_me"))
+                .andExpect(jsonPath("$.user.displayName").value("raise_me")) // 表示名はユーザー名と同じ（BR-01）
+                .andExpect(jsonPath("$.user.email").value("me@example.com"))
+                .andExpect(jsonPath("$.user.avatarUrl").isEmpty());
+        assertThat(client.cookie("REFRESH_TOKEN")).isNotNull(); // Cookie の属性は RefreshCookieTests で確かめる
 
         client.get("/api/auth/me").andExpect(status().isOk()).andExpect(jsonPath("$.username").value("raise_me"));
     }
 
     @Test
-    void セッションはDBに保存されログインした利用者のIDが入る() throws Exception {
+    void リフレッシュトークンはハッシュだけをDBに保存する() throws Exception {
         client.post("/api/auth/signup", VALID).andExpect(status().isCreated());
-        Long userId = jdbc.queryForObject("SELECT id FROM users", Long.class);
-        var principals = jdbc.queryForList("SELECT principal_name FROM spring_session", String.class);
-        assertThat(principals).containsExactly(String.valueOf(userId));
+        String raw = client.cookie("REFRESH_TOKEN").getValue();
+        var hashes = jdbc.queryForList("SELECT token_hash FROM refresh_tokens", String.class);
+        assertThat(hashes).hasSize(1);
+        assertThat(hashes.get(0)).isNotEqualTo(raw).isEqualTo(RefreshTokenService.hash(raw));
     }
 
     @Test

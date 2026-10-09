@@ -9,21 +9,18 @@ spring:
     open-in-view: false
     hibernate:
       ddl-auto: validate
-  session:
-    # ログインの有効期限は最後の操作から 7 日（BR-07）
-    timeout: 7d
-    jdbc:
-      # テーブルは Flyway で作る（V2__create_spring_session.sql。NF-MA-02）
-      initialize-schema: never
 
-server:
-  servlet:
-    session:
-      cookie:
-        # JavaScript から読めないようにし、HTTPS のときだけ送る（NF-SE-02）
-        http-only: true
-        secure: true
-        same-site: lax
+# 認証（JWT。技術選定書 4.1）
+app:
+  auth:
+    # アクセストークンの署名の鍵（256 ビット以上のランダムな値を Base64 で）。本番はパラメータストアから環境変数で渡す
+    jwt-secret: ${JWT_SECRET}
+    issuer: raisetimeline
+    access-token-ttl: 15m
+    # ログインの有効期限は最後の操作から 7 日（BR-07）
+    refresh-token-ttl: 7d
+    # リフレッシュトークンの Cookie を HTTPS のときだけ送る（NF-SE-02）
+    cookie-secure: true
 
 management:
   endpoints:

@@ -1,7 +1,7 @@
 # 開発用の設定（./gradlew bootRun で有効になる）
-server:
-  servlet:
-    session:
-      cookie:
-        # 開発中は HTTP（http://localhost）で動かすため、Secure を外す。外さないとブラウザが Cookie を送らない
-        secure: false
+app:
+  auth:
+    # 開発用の署名の鍵。本番では使わない（本番は環境変数 JWT_SECRET で別の値を渡す）
+    jwt-secret: RcctqyDv7lfgCRuvH0bT54L+lS3u1GnYONH1bLRcEjY=
+    # 開発中は HTTP（http://localhost）で動かすため、Secure を外す。外さないとブラウザが Cookie を送らない
+    cookie-secure: false

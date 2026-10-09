@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |---|---|
 | 文書番号 | 03 |
-| 版数 | 0.1 |
+| 版数 | 0.2 |
 | 作成日 | 2026-10-09 |
 | 作成者 | major182 |
 | 前提となる文書 | [01 要件定義書](01_requirements.md)、[01-1 機能一覧](01-1_feature-list.md)、[02 技術選定書](02_tech-stack.md) |
@@ -43,7 +43,7 @@
 | D-6 | 日時は **`TIMESTAMPTZ`（時差つきの日時）**で持ち、UTC で保存する。画面で日本時間に直して表示する | EC2・RDS の時刻の設定に左右されないようにする |
 | D-7 | 文字数は **Unicode のコードポイント（文字の番号）の数**で数える。Java の `String.codePointCount` と PostgreSQL の `char_length` が同じ数を返すので、画面・アプリ・DB の3か所で同じ基準になる | 多くの絵文字は1文字になる（BR-10）。家族の絵文字のように複数の文字を組み合わせた絵文字は、複数文字に数える |
 | D-8 | ユーザー名・メールアドレスの重複は、**小文字にした値の UNIQUE 索引**で禁止する | 大文字・小文字を区別せずに重複を禁止する（BR-02、BR-04）。表示は登録したときの大文字・小文字のまま |
-| D-9 | ログインの状態（セッション）は、Spring Session JDBC の**標準のテーブル**に置く | NF-AV-02。テーブルの形は Spring Session が決めているので、変えない |
+| D-9 | リフレッシュトークンは、**元の値ではなく SHA-256 のハッシュ**だけを保存する。アクセストークン（JWT）は DB に保存しない | DB が漏れても、ログインを続けるための鍵として使えないようにする。アクセストークンは署名と期限で検証できるので、保存する必要がない |
 
 ### 1.3 そのほかの方針
 
@@ -120,8 +120,7 @@ erDiagram
 | 4 | `comments` | コメント | 投稿へのコメント | F-CM |
 | 5 | `likes` | いいね | 誰がどの投稿にいいねしたか | F-LK、F-TL-07、F-TL-08 |
 | 6 | `follows` | フォロー | 誰が誰をフォローしているか | F-FL、F-TL-01、F-US-04 |
-| 7 | `spring_session` | セッション | ログインの状態（Spring Session JDBC の標準） | F-AU-02、F-AU-03 |
-| 8 | `spring_session_attributes` | セッションの属性 | セッションに付けた値（Spring Session JDBC の標準） | F-AU-02 |
+| 7 | `refresh_tokens` | リフレッシュトークン | ログインを続けるための鍵（ハッシュ） | F-AU-01〜03、F-AU-05 |
 
 ---
 
@@ -251,17 +250,29 @@ erDiagram
 | 主キー | `(follower_id, followee_id)` | フォローの一覧、フォロー数、フォロー済みか |
 | `follows_followee_created_idx` | `(followee_id, created_at DESC)` | フォロワーの一覧、フォロワー数 |
 
-### 4.7 `spring_session`・`spring_session_attributes`（セッション）
+### 4.7 `refresh_tokens`（リフレッシュトークン）
 
-Spring Session JDBC が用意している PostgreSQL 用のテーブル定義（`schema-postgresql.sql`）を、そのまま Flyway のマイグレーションに写して作る（D-9）。
+技術選定書 4.1 の JWT 方式で、ログインを続けるための鍵。1行が1つの端末のログインにあたる。
 
-| テーブル | 主な列 | 説明 |
+| 列名 | 型 | 必須 | 既定値 | 制約・説明 | 出典 |
+|---|---|---|---|---|---|
+| `id` | BIGINT | ○ | 自動の連番 | 主キー | ― |
+| `user_id` | BIGINT | ○ | | 利用者 → `users.id` | ― |
+| `token_hash` | TEXT | ○ | | トークンの SHA-256 のハッシュ（16 進数 64 文字）。重複を禁止 | D-9 |
+| `expires_at` | TIMESTAMPTZ | ○ | | 期限。発行の 7 日後 | BR-07 |
+| `revoked_at` | TIMESTAMPTZ | | | 無効にした日時。NULL なら有効。取り直し・ログアウト・パスワードの変更で入れる | BR-07 |
+| `revoke_reason` | TEXT | | | 無効にした理由。`ROTATED`（取り直しで使い終わった）／`LOGOUT`／`PASSWORD_CHANGED`／`REUSE_DETECTED`（使い回しを検知）。`revoked_at` と同時に入れる（CHECK） | ― |
+| `created_at` | TIMESTAMPTZ | ○ | `now()` | 発行した日時 | ― |
+
+**索引**
+
+| 索引 | 列 | 目的 |
 |---|---|---|
-| `spring_session` | `primary_id`、`session_id`、`creation_time`、`last_access_time`、`max_inactive_interval`、`expiry_time`、`principal_name` | 1行が1つのログインの状態。`max_inactive_interval` は 7 日（604,800 秒。BR-07） |
-| `spring_session_attributes` | `session_primary_id`、`attribute_name`、`attribute_bytes` | セッションに付けた値（ログインしている利用者など） |
+| `refresh_tokens_token_hash_key` | `token_hash` | UNIQUE。取り直しのときにトークンを探す |
+| `refresh_tokens_user_idx` | `user_id` | 利用者のトークンをまとめて無効にする（使い回しの検知・パスワードの変更） |
 
-- 期限切れの行は Spring Session が定期的に消す
-- ログアウトしたら、その行を消す（BR-07）
+- **使い回しの検知**：取り直しで使い終わったトークン（`revoke_reason = ROTATED`）で再び取り直しを求められたら、盗まれたとみなし、その利用者の有効なトークンをすべて無効にする（技術選定書 4.1）。ログアウト・パスワードの変更で無効にしたトークンが届くのは普通に起こるので、断るだけにする
+- 期限切れ・無効にしたトークンの行は、1 日に 1 回まとめて消す（無効にしてから 7 日たったもの）
 
 ---
 
@@ -384,6 +395,7 @@ LIMIT 20 OFFSET :offset;
 | BR-02 ユーザー名の形式・重複 | DB：CHECK（正規表現）、`lower(username)` の UNIQUE。アプリ：同じチェックで、使われていれば理由を返す |
 | BR-04 メールアドレスの重複 | DB：`lower(email)` の UNIQUE |
 | BR-05 パスワード | アプリ：長さ・文字の種類のチェック、BCrypt のハッシュ化。DB にはハッシュだけを持つ |
+| BR-07 ログインの期限・ログアウト | `refresh_tokens.expires_at`・`revoked_at`（4.7） |
 | BR-08 ログインの一時停止 | `users.failed_login_count`・`locked_until`（5.8） |
 | BR-10・BR-30 280 文字 | DB：CHECK（`char_length`）。アプリ・画面：同じ数え方（D-7） |
 | BR-11 本文も画像もない投稿の禁止 | アプリ（サービス層）。2つのテーブルにまたがるため DB の制約にできない |
@@ -413,3 +425,4 @@ LIMIT 20 OFFSET :offset;
 | 版数 | 日付 | 内容 |
 |---|---|---|
 | 0.1 | 2026-10-09 | 初版 |
+| 0.2 | 2026-10-09 | 認証の JWT 方式への変更に合わせ、Spring Session のテーブルをやめて refresh_tokens を追加（D-9、4.7） |

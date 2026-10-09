@@ -20,7 +20,7 @@ public enum ErrorCode {
     CSRF_INVALID(HttpStatus.FORBIDDEN, "エラーが発生しました。時間をおいてもう一度お試しください"),
     NOT_FOUND(HttpStatus.NOT_FOUND, "見つかりません"),
     CONFLICT(HttpStatus.CONFLICT, "入力内容を確認してください"),
-    IMAGE_TOO_LARGE(HttpStatus.PAYLOAD_TOO_LARGE, "5MB 以下の画像を選んでください"),
+    IMAGE_TOO_LARGE(HttpStatus.CONTENT_TOO_LARGE, "5MB 以下の画像を選んでください"),
     IMAGE_TYPE_INVALID(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "JPEG・PNG・WebP・GIF の画像を選んでください"),
     INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "エラーが発生しました。時間をおいてもう一度お試しください");
 
