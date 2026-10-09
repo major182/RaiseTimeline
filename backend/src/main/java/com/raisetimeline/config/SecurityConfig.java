@@ -58,7 +58,9 @@ public class SecurityConfig {
                         .permitAll()
                         .requestMatchers(HttpMethod.GET, "/actuator/health")
                         .permitAll()
-                        .requestMatchers("/api/**", "/media/**")
+                        // 開発環境の画像（/media）は、<img> が Authorization ヘッダーを送れないため、ログインではなく
+                        // URL の署名と期限で守る（MediaController）
+                        .requestMatchers("/api/**")
                         .authenticated()
                         // 画面のファイル（index.html など）はログインなしで返し、画面側でログイン画面へ移動する
                         .anyRequest()

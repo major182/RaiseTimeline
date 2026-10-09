@@ -56,9 +56,12 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @Override
     protected ResponseEntity<Object> handleExceptionInternal(
             Exception e, @Nullable Object body, HttpHeaders headers, HttpStatusCode status, WebRequest request) {
-        ErrorCode code = status.value() == 404
-                ? ErrorCode.NOT_FOUND
-                : status.is4xxClientError() ? ErrorCode.VALIDATION_FAILED : ErrorCode.INTERNAL_ERROR;
+        // 413 は、アップロードの上限（spring.servlet.multipart）を超えたとき（MaxUploadSizeExceededException）
+        ErrorCode code = switch (status.value()) {
+            case 404 -> ErrorCode.NOT_FOUND;
+            case 413 -> ErrorCode.IMAGE_TOO_LARGE;
+            default -> status.is4xxClientError() ? ErrorCode.VALIDATION_FAILED : ErrorCode.INTERNAL_ERROR;
+        };
         ProblemDetail problem = ProblemDetails.of(code, path(request));
         problem.setStatus(status.value()); // 405 などは元の状態コードのまま返す
         return ResponseEntity.status(status).headers(headers).body(problem);

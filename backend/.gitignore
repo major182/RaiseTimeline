@@ -35,3 +35,6 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### 開発環境で保存した画像（app.storage.local-dir）###
+data/

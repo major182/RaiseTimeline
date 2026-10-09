@@ -4,13 +4,17 @@ import com.raisetimeline.auth.AuthenticatedUser;
 import com.raisetimeline.common.pagination.CursorPage;
 import jakarta.validation.Valid;
 import java.util.List;
+import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 /** 利用者・プロフィールの API（API 設計書 4.2）。業務ルールは {@link UserService} に置く。 */
 @RestController
@@ -39,6 +43,13 @@ public class UserController {
     ProfileResponse updateProfile(
             @AuthenticationPrincipal AuthenticatedUser me, @Valid @RequestBody UpdateProfileRequest body) {
         return userService.updateProfile(me.id(), body);
+    }
+
+    /** アイコンの変更（F-US-02）。multipart/form-data の file に画像を 1 枚。 */
+    @PutMapping(path = "/api/me/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    ProfileResponse changeAvatar(
+            @AuthenticationPrincipal AuthenticatedUser me, @RequestPart(name = "file", required = false) MultipartFile file) {
+        return userService.changeAvatar(me.id(), file);
     }
 
     /** 利用者の検索（F-US-03）。 */

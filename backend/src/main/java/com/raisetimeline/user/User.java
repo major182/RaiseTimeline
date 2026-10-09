@@ -115,6 +115,17 @@ public class User {
         }
     }
 
+    /**
+     * アイコンを変える（BR-24）。保存先のキーを受け取る。
+     *
+     * @return 前のアイコンのキー（なければ null）。呼んだ側が、DB の確定後にファイルを消す
+     */
+    public String changeAvatar(String avatarKey) {
+        String old = this.avatarKey;
+        this.avatarKey = avatarKey;
+        return old;
+    }
+
     @PrePersist
     void onCreate() {
         createdAt = Instant.now();

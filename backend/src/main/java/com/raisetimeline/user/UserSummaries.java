@@ -1,6 +1,7 @@
 package com.raisetimeline.user;
 
 import com.raisetimeline.follow.FollowRepository;
+import com.raisetimeline.image.ImageStorage;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -19,10 +20,12 @@ public class UserSummaries {
 
     private final UserRepository users;
     private final FollowRepository follows;
+    private final ImageStorage storage;
 
-    public UserSummaries(UserRepository users, FollowRepository follows) {
+    public UserSummaries(UserRepository users, FollowRepository follows, ImageStorage storage) {
         this.users = users;
         this.follows = follows;
+        this.storage = storage;
     }
 
     /** users と同じ順番で要約を返す。 */
@@ -38,7 +41,7 @@ public class UserSummaries {
                         u.getId(),
                         u.getUsername(),
                         u.getDisplayName(),
-                        null,
+                        storage.urlOrNull(u.getAvatarKey()),
                         u.getBio(),
                         followed.contains(u.getId()),
                         u.getId() == meId))
