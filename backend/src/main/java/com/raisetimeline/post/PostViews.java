@@ -1,7 +1,9 @@
 package com.raisetimeline.post;
 
+import com.raisetimeline.comment.CommentRepository;
 import com.raisetimeline.user.UserSummaries;
 import com.raisetimeline.user.UserSummary;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -18,9 +20,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class PostViews {
 
     private final UserSummaries summaries;
+    private final CommentRepository comments;
 
-    public PostViews(UserSummaries summaries) {
+    public PostViews(UserSummaries summaries, CommentRepository comments) {
         this.summaries = summaries;
+        this.comments = comments;
     }
 
     /** posts と同じ順番で投稿カードを返す。 */
@@ -32,6 +36,8 @@ public class PostViews {
         List<Long> authorIds = posts.stream().map(Post::getUserId).distinct().toList();
         Map<Long, UserSummary> authors = summaries.ofIds(authorIds, meId).stream()
                 .collect(Collectors.toMap(UserSummary::id, Function.identity()));
+        List<Long> postIds = posts.stream().map(Post::getId).toList();
+        Map<Long, Long> commentCounts = toMap(comments.countByPostIds(postIds));
         return posts.stream()
                 .map(p -> new PostResponse(
                         p.getId(),
@@ -41,7 +47,7 @@ public class PostViews {
                         p.getCreatedAt(),
                         p.getEditedAt(),
                         0,
-                        0,
+                        commentCounts.getOrDefault(p.getId(), 0L),
                         false,
                         null,
                         p.isOwnedBy(meId)))
@@ -50,5 +56,10 @@ public class PostViews {
 
     public PostResponse of(Post post, long meId) {
         return of(List.of(post), meId).getFirst();
+    }
+
+    /** 数えた結果を「投稿の ID → 数」にする。行のない投稿（数が 0）は入らない。 */
+    private static Map<Long, Long> toMap(Collection<PostCount> counts) {
+        return counts.stream().collect(Collectors.toMap(PostCount::postId, PostCount::count));
     }
 }
