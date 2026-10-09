@@ -16,6 +16,14 @@ public interface ImageStorage {
     /** 画像を見るための、期限つきの署名つき URL（NF-SE-06）。保存先は非公開なので、この URL でだけ見られる。 */
     String url(String key);
 
+    /**
+     * 画像の URL のオリジン（例：https://バケット.s3.リージョン.amazonaws.com）。画面の CSP の img-src に足す。
+     * 画面と同じオリジンから配信するとき（ローカル）は null。
+     */
+    default String origin() {
+        return null;
+    }
+
     /** キーがなければ（アイコンが未設定など）null を返す。 */
     default String urlOrNull(String key) {
         return key == null ? null : url(key);
