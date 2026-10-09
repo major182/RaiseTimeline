@@ -8,6 +8,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import java.time.Duration;
 import java.time.Instant;
 
 /** 利用者（DB 設計書 4.1）。利用者は変わらない番号（id）で見分ける（D-1）。 */
@@ -64,6 +65,33 @@ public class User {
         user.email = email;
         user.passwordHash = passwordHash;
         return user;
+    }
+
+    /** この時刻にログインが止められているか（BR-08）。 */
+    public boolean isLoginLocked(Instant now) {
+        return lockedUntil != null && lockedUntil.isAfter(now);
+    }
+
+    /**
+     * ログインの失敗を記録する（BR-08、DB 設計書 5.8）。
+     * 続けて maxFailures 回失敗したら lockDuration の間ログインを止め、回数を 0 に戻す。
+     *
+     * @return 今回の失敗でログインを止めたら true
+     */
+    public boolean recordLoginFailure(Instant now, int maxFailures, Duration lockDuration) {
+        failedLoginCount++;
+        if (failedLoginCount < maxFailures) {
+            return false;
+        }
+        failedLoginCount = 0;
+        lockedUntil = now.plus(lockDuration);
+        return true;
+    }
+
+    /** ログインに成功したら、失敗の回数と停止を消す。 */
+    public void recordLoginSuccess() {
+        failedLoginCount = 0;
+        lockedUntil = null;
     }
 
     @PrePersist

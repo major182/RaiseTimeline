@@ -10,7 +10,10 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.savedrequest.NullRequestCache;
 import org.springframework.security.web.csrf.CsrfException;
+import org.springframework.security.web.csrf.CsrfTokenRepository;
 
 /**
  * 認証・CSRF の設定（API 設計書 2.2、5 章）。
@@ -22,7 +25,9 @@ import org.springframework.security.web.csrf.CsrfException;
 public class SecurityConfig {
 
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http, ProblemDetailResponseWriter writer) throws Exception {
+    SecurityFilterChain securityFilterChain(
+            HttpSecurity http, ProblemDetailResponseWriter writer, CsrfTokenRepository csrfTokenRepository)
+            throws Exception {
         http.authorizeHttpRequests(auth -> auth
                         // ログインしていなくても使える API（API 設計書 2.2）
                         .requestMatchers(HttpMethod.GET, "/api/auth/csrf").permitAll()
@@ -32,7 +37,7 @@ public class SecurityConfig {
                         // 画面のファイル（index.html など）はログインなしで返し、画面側でログイン画面へ移動する
                         .anyRequest().permitAll())
                 // JavaScript で動く画面向けの標準の CSRF 対策。XSRF-TOKEN Cookie の値を X-XSRF-TOKEN ヘッダーで送らせる
-                .csrf(csrf -> csrf.spa())
+                .csrf(csrf -> csrf.spa().csrfTokenRepository(csrfTokenRepository))
                 .exceptionHandling(e -> e
                         // ログインしていない：401。画面へのリダイレクトはせず JSON を返す
                         .authenticationEntryPoint(
@@ -42,10 +47,22 @@ public class SecurityConfig {
                                 request,
                                 response,
                                 ex instanceof CsrfException ? ErrorCode.CSRF_INVALID : ErrorCode.FORBIDDEN)))
+                // ログインの後に元の画面へ戻すための「要求の保存」は使わない（画面側で戻す）。
+                // 使うと、ログインしていない人の要求のたびにセッションが作られ、DB に行が増える
+                .requestCache(cache -> cache.requestCache(new NullRequestCache()))
                 .formLogin(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .logout(AbstractHttpConfigurer::disable);
         return http.build();
+    }
+
+    /**
+     * CSRF トークンを XSRF-TOKEN Cookie に置く（画面の JavaScript が読めるよう HttpOnly にしない）。
+     * ログイン・ログアウトでトークンを作り直すため（SessionLogin）、Bean にして共有する。
+     */
+    @Bean
+    CsrfTokenRepository csrfTokenRepository() {
+        return CookieCsrfTokenRepository.withHttpOnlyFalse();
     }
 
     /** パスワードは BCrypt でハッシュ化して保存する（BR-05）。 */

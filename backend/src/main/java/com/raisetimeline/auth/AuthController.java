@@ -33,6 +33,21 @@ public class AuthController {
         return ResponseEntity.created(URI.create("/api/auth/me")).body(MeResponse.from(user));
     }
 
+    /** ログイン。成功したらセッションを作り、ログインしている利用者を返す。 */
+    @PostMapping("/api/auth/login")
+    MeResponse login(@Valid @RequestBody LoginRequest body, HttpServletRequest request, HttpServletResponse response) {
+        User user = authService.login(body);
+        sessionLogin.login(user.getId(), request, response);
+        return MeResponse.from(user);
+    }
+
+    /** ログアウト。セッションを消し、すぐにログインしていない状態にする（BR-07）。 */
+    @PostMapping("/api/auth/logout")
+    ResponseEntity<Void> logout(HttpServletRequest request, HttpServletResponse response) {
+        sessionLogin.logout(request, response);
+        return ResponseEntity.noContent().build();
+    }
+
     /** ログインしている利用者。画面は起動したときに呼び、401 ならログイン画面へ移動する。 */
     @GetMapping("/api/auth/me")
     MeResponse me(@AuthenticationPrincipal AuthenticatedUser principal) {
