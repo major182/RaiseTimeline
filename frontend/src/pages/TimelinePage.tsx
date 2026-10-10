@@ -11,7 +11,7 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material'
-import { useInfiniteQuery } from '@tanstack/react-query'
+import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Link as RouterLink } from 'react-router'
 import { getAllTimeline, getFollowingTimeline } from '../api/timeline'
@@ -19,6 +19,7 @@ import type { CursorPage, FollowingTimeline, Post } from '../api/types'
 import { LoadMore } from '../components/LoadMore'
 import { PostCard } from '../components/PostCard'
 import { PostListSkeleton } from '../components/PostListSkeleton'
+import { PullToRefresh } from '../components/PullToRefresh'
 import { RecommendedUsers } from '../components/RecommendedUsers'
 import { QUERY_KEYS } from '../queryCache'
 
@@ -66,6 +67,7 @@ export function TimelinePage() {
   const theme = useTheme()
   const showAside = useMediaQuery(theme.breakpoints.up('lg'))
   const [tab, setTab] = useState<TimelineTab>(loadTab)
+  const queryClient = useQueryClient()
 
   return (
     <Stack direction="row" spacing={3} sx={{ justifyContent: 'center', px: { lg: 3 } }}>
@@ -105,8 +107,13 @@ export function TimelinePage() {
             <Tab label="全体" value="all" />
           </Tabs>
         </Box>
-        {/* key でタブごとに作り直し、切り替えたら一覧の先頭から表示する */}
-        <TimelineList key={tab} tab={tab} />
+        {/* 下に引っ張ったら、「ホーム」を押し直したときと同じく読み込み直す（F-TL-04） */}
+        <PullToRefresh
+          onRefresh={() => queryClient.resetQueries({ queryKey: QUERY_KEYS.timeline })}
+        >
+          {/* key でタブごとに作り直し、切り替えたら一覧の先頭から表示する */}
+          <TimelineList key={tab} tab={tab} />
+        </PullToRefresh>
       </Box>
       {showAside && (
         <Box component="aside" sx={{ width: 320, flexShrink: 0, pt: 2 }}>
