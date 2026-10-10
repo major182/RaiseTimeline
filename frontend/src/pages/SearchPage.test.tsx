@@ -63,6 +63,14 @@ describe('利用者の検索（SC-07）', () => {
     expect(searchCalls(fetchMock)).toEqual([])
   })
 
+  it('B-2 URL の q が 50 文字を超えていたら、検索せずに誤りを出す', async () => {
+    const long = 'あ'.repeat(51)
+    const { fetchMock } = openSearch(`/search?q=${encodeURIComponent(long)}`)
+    expect(await screen.findByText('1〜50 文字で入力してください')).toBeInTheDocument()
+    await new Promise((r) => setTimeout(r, 100))
+    expect(searchCalls(fetchMock)).toEqual([])
+  })
+
   it('ナビの「検索」から開ける', async () => {
     const { user } = openSearch('/')
     const nav = await screen.findByRole('navigation', { name: 'メインのナビ' })

@@ -71,7 +71,8 @@ export function SearchPage() {
         </Box>
       }
     >
-      {term ? (
+      {/* 長すぎる検索語（URL に直接入れたときなど）は送らず、入力欄の下の誤りだけを出す */}
+      {tooLong ? null : term ? (
         <UserList
           key={term}
           queryKey={QUERY_KEYS.search(term)}
