@@ -11,6 +11,12 @@ export const QUERY_KEYS = {
   post: (postId: number) => ['posts', 'detail', postId] as const,
   comments: (postId: number) => ['comments', postId] as const,
   likes: (postId: number) => ['users', 'likes', postId] as const,
+  /** プロフィール。ユーザー名は大文字・小文字を区別しないので、小文字にそろえる。 */
+  profile: (username: string) => ['users', 'profile', username.toLowerCase()] as const,
+  profiles: ['users', 'profile'] as const,
+  userPosts: (userId: number) => ['posts', 'user', userId] as const,
+  following: (userId: number) => ['users', 'following', userId] as const,
+  followers: (userId: number) => ['users', 'followers', userId] as const,
 }
 
 /** オブジェクトの中の配列 items・highlights と、一覧の pages をたどって、要素を書き換える。 */

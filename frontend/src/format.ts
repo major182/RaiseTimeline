@@ -48,6 +48,12 @@ export function formatFullTime(iso: string): string {
   return `${d.year}年${d.month}月${d.day}日 ${d.hour}:${d.minute}`
 }
 
+/** 利用開始。「2026年10月から利用」（日本時間。画面設計書 5.8）。 */
+export function formatJoined(iso: string): string {
+  const d = partsInJapan(new Date(iso))
+  return `${d.year}年${d.month}月から利用`
+}
+
 /** いいね・コメント・フォローの数。1 万以上は「1.2万」（小数第 1 位まで。切り捨て）。 */
 export function formatCount(count: number): string {
   if (count < 10_000) return String(count)

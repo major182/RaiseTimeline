@@ -54,3 +54,10 @@ export type Comment = {
   /** コメントした本人か投稿した本人なら true（削除のメニューを出す。BR-35）。 */
   deletable: boolean
 }
+
+/** プロフィール（API 設計書 3.2）。UserSummary にフォロー数・フォロワー数・登録日時を足したもの。 */
+export type Profile = UserSummary & {
+  followingCount: number
+  followerCount: number
+  createdAt: string
+}

@@ -1,5 +1,6 @@
 import Add from '@mui/icons-material/Add'
 import Home from '@mui/icons-material/Home'
+import Person from '@mui/icons-material/PersonOutlined'
 import {
   BottomNavigation,
   BottomNavigationAction,
@@ -66,6 +67,12 @@ export function AppLayout() {
     onError: (error) => notify(error.message, 'error'),
   })
 
+  // 自分のプロフィール（とそのフォロー一覧）を開いているか。ユーザー名は大文字・小文字を区別しない
+  const myProfile = me ? `/users/${me.username}` : undefined
+  const onMyProfile =
+    !!myProfile && location.pathname.toLowerCase().startsWith(myProfile.toLowerCase())
+  const navValue = location.pathname === '/' ? '/' : onMyProfile ? 'profile' : false
+
   /** ホームにいるときに「ホーム」を押したら、一番上に戻ってタイムラインを読み込み直す（F-TL-04）。 */
   const onHome = () => {
     if (location.pathname !== '/') return
@@ -115,6 +122,14 @@ export function AppLayout() {
               </ListItemIcon>
               <ListItemText primary="ホーム" />
             </ListItemButton>
+            {myProfile && (
+              <ListItemButton component={RouterLink} to={myProfile} selected={onMyProfile}>
+                <ListItemIcon>
+                  <Person />
+                </ListItemIcon>
+                <ListItemText primary="プロフィール" />
+              </ListItemButton>
+            )}
           </List>
           <Box sx={{ px: 2, mt: 1 }}>
             <Button
@@ -175,12 +190,7 @@ export function AppLayout() {
           sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 'appBar' }}
           elevation={3}
         >
-          <BottomNavigation
-            component="nav"
-            aria-label="メインのナビ"
-            showLabels
-            value={location.pathname}
-          >
+          <BottomNavigation component="nav" aria-label="メインのナビ" showLabels value={navValue}>
             <BottomNavigationAction
               label="ホーム"
               value="/"
@@ -189,6 +199,15 @@ export function AppLayout() {
               to="/"
               onClick={onHome}
             />
+            {myProfile && (
+              <BottomNavigationAction
+                label="プロフィール"
+                value="profile"
+                icon={<Person />}
+                component={RouterLink}
+                to={myProfile}
+              />
+            )}
             {me && (
               <BottomNavigationAction
                 label="アカウント"
