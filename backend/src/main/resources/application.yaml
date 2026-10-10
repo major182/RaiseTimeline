@@ -46,6 +46,13 @@ server:
     # 上限を超えたアップロードでも、413 の応答を返せるよう本文を読み切る（既定の 2MB では接続が切られることがある）
     max-swallow-size: 25MB
 
+# Swagger UI（API 設計書 5 章）。本番・テストでは出さない。開発（application-dev.yaml）だけ有効にする
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
 management:
   endpoints:
     web:

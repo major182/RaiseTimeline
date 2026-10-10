@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |---|---|
 | 文書番号 | 05 |
-| 版数 | 0.5 |
+| 版数 | 0.6 |
 | 作成日 | 2026-10-09 |
 | 作成者 | major182 |
 | 前提となる文書 | [01 要件定義書](01_requirements.md)、[01-1 機能一覧](01-1_feature-list.md)、[03 DB 設計書](03_db-design.md)、[04 画面設計書](04_screen-design.md) |
@@ -313,7 +313,7 @@ UserSummary ＋ `followingCount`（フォロー数）・`followerCount`（フォ
 - **本人の確認はサービス層で行う**（投稿・コメントの編集と削除。NF-SE-04）。画面でボタンを隠すだけでは、API を直接呼ばれると防げない
 - **画面の URL への直接のアクセス**：`/users/raise_user` などを開いたり再読み込みしたりしたら、Spring Boot は `index.html` を返す（React Router が画面を出す）。`/api/`・`/actuator/`・`/media/` で始まる URL は除く。画面のファイルはログインなしで返す
 - **アップロードの上限**：`spring.servlet.multipart.max-file-size=5MB`、`max-request-size=21MB`（画像 4 枚 + 本文）。超えたら 413（`IMAGE_TOO_LARGE`）
-- **Swagger UI**：springdoc-openapi 3.1.1 で、開発中だけ `/swagger-ui.html` から API を試せるようにする（本番では無効）。Spring Boot 4.1 との組み合わせは導入時に確かめ、技術選定書に追記する
+- **Swagger UI**：springdoc-openapi 3.1.1 で、開発中（`./gradlew bootRun`）だけ `http://localhost:8080/swagger-ui.html` から API を試せる。本番・テストでは `/v3/api-docs`・`/swagger-ui.html` とも 404。ログインの要る API は、ログインの応答の `accessToken` を「Authorize」に入れてから試す（技術選定書 3.2）
 
 ---
 
@@ -326,3 +326,4 @@ UserSummary ＋ `followingCount`（フォロー数）・`followerCount`（フォ
 | 0.3 | 2026-10-09 | 認証を JWT 方式に変更（2.2、3.6 AuthResponse、4.1 に refresh を追加し csrf を削除） |
 | 0.4 | 2026-10-09 | フォローの実装に合わせ、自分自身のフォローの code（VALIDATION_FAILED）を明記 |
 | 0.5 | 2026-10-09 | 画像の実装に合わせ、開発環境の /media をログインではなく署名つき URL で守る形に変更（2.2、4.8）。アイコンの file がないときの 400 を追記 |
+| 0.6 | 2026-10-10 | Swagger UI の導入に合わせ、使い方と本番で無効になることを追記（5 章） |

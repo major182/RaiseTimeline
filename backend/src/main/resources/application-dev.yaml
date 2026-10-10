@@ -9,3 +9,9 @@ spring:
   flyway:
     # 開発のときだけ、テストデータ（db/dev-data。DB 設計書 7 章）も読み込む。本番は db/migration だけ
     locations: classpath:db/migration,classpath:db/dev-data
+# 開発中だけ Swagger UI（http://localhost:8080/swagger-ui.html）から API を試せるようにする（API 設計書 5 章）
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true

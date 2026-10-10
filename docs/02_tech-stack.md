@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |---|---|
 | 文書番号 | 02 |
-| 版数 | 0.8 |
+| 版数 | 0.9 |
 | 作成日 | 2026-10-07 |
 | 作成者 | major182 |
 | 前提となる文書 | [01 要件定義書](01_requirements.md)、[01-1 機能一覧](01-1_feature-list.md) |
@@ -62,6 +62,7 @@ RaiseTimeline で使う技術を決め、**なぜそれを選んだか・なぜ�
 | DB の構造の変更 | **Flyway** | Spring Boot が管理 | NF-MA-02 |
 | 入力の検証 | **Bean Validation**（Hibernate Validator） | Spring Boot が管理 | |
 | S3 への保存 | **AWS SDK for Java 2.x**（S3） | 2.55.11 | 署名つき URL の発行にも使う |
+| API の試し画面 | **springdoc-openapi**（Swagger UI） | 3.1.1 | 開発（dev）だけ有効。本番・テストでは無効。3.1.1 は Spring Boot 4.1.0 を土台に作られており、4.1.1 で動くことを確かめた（2026-10-10） |
 | ビルド | **Gradle**（Kotlin DSL） | 9.7.1 | |
 | テスト | JUnit 5 + **Testcontainers** | Spring Boot が管理 | テストでも本物の PostgreSQL を使う |
 | 整形・lint | **Spotless**・**Checkstyle** | 8.10.4 / 14.3.0 | `./gradlew check` で整形・lint・テストをまとめて実行 |
@@ -226,3 +227,4 @@ XSS（他人が書いたスクリプトを画面で動かされる攻撃）が�
 | 0.6 | 2026-10-09 | ログインの方式をセッションから JWT に変更（3.2、4.1）。XSS の対策（4.7）を追加 |
 | 0.7 | 2026-10-09 | 画像の実装に合わせ、保存先の切り替え・開発環境の署名つき URL・形式の判定の方法を追記（4.3） |
 | 0.8 | 2026-10-09 | S3 のときは CSP の img-src にバケットのオリジンを足すことを追記（4.3） |
+| 0.9 | 2026-10-10 | 開発用の Swagger UI として springdoc-openapi 3.1.1 を採用（3.2） |

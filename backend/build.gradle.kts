@@ -32,6 +32,8 @@ dependencies {
     // 画像の保存（S3）と署名つき URL の発行（技術選定書 4.3）。版は BOM でそろえる（Spring Boot の管理外）
     implementation(platform("software.amazon.awssdk:bom:2.55.11"))
     implementation("software.amazon.awssdk:s3")
+    // 開発中だけ API を画面から試す Swagger UI（API 設計書 5 章）。Spring Boot の管理外なので版を書く
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.1")
     developmentOnly("org.springframework.boot:spring-boot-devtools")
     runtimeOnly("org.postgresql:postgresql")
     testImplementation("org.springframework.boot:spring-boot-starter-actuator-test")
