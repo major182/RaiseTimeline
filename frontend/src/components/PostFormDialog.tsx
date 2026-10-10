@@ -37,6 +37,8 @@ type Props = {
   error?: string
   /** 入力欄の下に出すもの（画像など）。 */
   children?: ReactNode
+  /** 下の段の左に出すもの（画像の添付のボタンなど）。 */
+  tools?: ReactNode
 }
 
 /**
@@ -56,6 +58,7 @@ export function PostFormDialog({
   onClose,
   error,
   children,
+  tools,
 }: Props) {
   const theme = useTheme()
   const fullScreen = useMediaQuery(theme.breakpoints.down('md'))
@@ -133,7 +136,11 @@ export function PostFormDialog({
               {children}
             </Box>
           </Stack>
-          <Stack direction="row" sx={{ justifyContent: 'flex-end', mt: 2 }}>
+          <Stack
+            direction="row"
+            sx={{ alignItems: 'center', justifyContent: 'space-between', mt: 2 }}
+          >
+            <Box>{tools}</Box>
             <CharCounter text={body} max={BODY_MAX_LENGTH} />
           </Stack>
         </DialogContent>
