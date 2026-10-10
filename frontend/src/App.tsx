@@ -1,10 +1,12 @@
 import { Route, Routes } from 'react-router'
 import { PublicOnly, RequireAuth } from './auth/RouteGuards'
 import { AppLayout } from './components/AppLayout'
+import { FollowListPage } from './pages/FollowListPage'
 import { LikesPage } from './pages/LikesPage'
 import { LoginPage } from './pages/LoginPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { PostDetailPage } from './pages/PostDetailPage'
+import { ProfilePage } from './pages/ProfilePage'
 import { SignupPage } from './pages/SignupPage'
 import { TimelinePage } from './pages/TimelinePage'
 
@@ -22,6 +24,9 @@ export function App() {
           <Route path="/" element={<TimelinePage />} />
           <Route path="/posts/:postId" element={<PostDetailPage />} />
           <Route path="/posts/:postId/likes" element={<LikesPage />} />
+          <Route path="/users/:username" element={<ProfilePage />} />
+          <Route path="/users/:username/following" element={<FollowListPage tab="following" />} />
+          <Route path="/users/:username/followers" element={<FollowListPage tab="followers" />} />
         </Route>
       </Route>
       <Route path="*" element={<NotFoundPage />} />

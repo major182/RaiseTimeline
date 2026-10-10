@@ -6,7 +6,7 @@ import { ApiError } from '../api/client'
 import { createPost } from '../api/posts'
 import { IMAGE_MAX_COUNT, IMAGE_TYPES, checkImage, prepareImage } from '../imageAttach'
 import { MESSAGES } from '../messages'
-import { prependPost } from '../queryCache'
+import { QUERY_KEYS, prependPost } from '../queryCache'
 import { AttachedImages, type Attachment } from './AttachedImages'
 import { PostFormDialog } from './PostFormDialog'
 import { useNotify } from './SnackbarProvider'
@@ -91,6 +91,8 @@ export function PostComposer({ open, onClose }: Props) {
     onSuccess: (post) => {
       // 投稿したら、いまのタイムラインの先頭に自分の投稿を足す（画面設計書 5.3）
       prependPost(queryClient, post)
+      // 自分のプロフィールの投稿の一覧は、次に開いたときに読み込み直す
+      void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.userPosts(post.author.id) })
       notify('投稿しました') // I-02
       close()
     },
