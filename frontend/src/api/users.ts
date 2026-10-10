@@ -28,3 +28,22 @@ export function getFollowers(
 ): Promise<CursorPage<UserSummary>> {
   return request('GET', withCursor(`/api/users/${userId}/followers`, cursor))
 }
+
+/** ID で取る（プロフィールの編集の画面で、今の値を出すため）。 */
+export function getUser(userId: number): Promise<Profile> {
+  return request('GET', `/api/users/${userId}`)
+}
+
+/** プロフィールを変える。送った項目だけ変わる。 */
+export function updateProfile(
+  input: Partial<Pick<Profile, 'displayName' | 'username' | 'bio'>>,
+): Promise<Profile> {
+  return request('PATCH', '/api/me/profile', input)
+}
+
+/** アイコンを変える（画像 1 枚）。 */
+export function updateAvatar(file: File): Promise<Profile> {
+  const form = new FormData()
+  form.append('file', file)
+  return request('PUT', '/api/me/avatar', form)
+}

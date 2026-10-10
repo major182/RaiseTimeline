@@ -1,6 +1,7 @@
 import Add from '@mui/icons-material/Add'
 import Home from '@mui/icons-material/Home'
 import Person from '@mui/icons-material/PersonOutlined'
+import Settings from '@mui/icons-material/SettingsOutlined'
 import {
   BottomNavigation,
   BottomNavigationAction,
@@ -13,31 +14,34 @@ import {
   ListItemButton,
   ListItemIcon,
   ListItemText,
-  Menu,
-  MenuItem,
   Paper,
   Typography,
   useMediaQuery,
   useTheme,
 } from '@mui/material'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
+import { useEffect, useState, type ReactNode } from 'react'
 import { Outlet, Link as RouterLink, useLocation, useNavigationType } from 'react-router'
-import { logout } from '../api/auth'
-import { ME_QUERY_KEY, useMe } from '../auth/useMe'
+import { useMe } from '../auth/useMe'
 import { QUERY_KEYS } from '../queryCache'
-import { ConfirmDialog } from './ConfirmDialog'
 import { PostComposer } from './PostComposer'
-import { useNotify } from './SnackbarProvider'
 import { UserAvatar } from './UserAvatar'
 
 /** PC のナビの幅。 */
 const NAV_WIDTH = 240
 
+type NavItem = { label: string; to: string; icon: ReactNode; selected: boolean }
+
+/** path が base そのものか、base の下の画面か（大文字・小文字は区別しない。ユーザー名のため）。 */
+function isUnder(path: string, base: string): boolean {
+  const p = path.toLowerCase()
+  const b = base.toLowerCase()
+  return p === b || p.startsWith(`${b}/`)
+}
+
 /**
  * ログイン後の画面の枠（画面設計書 1.1）。
  * PC（幅 900px 以上）は左にナビ、スマホは下にナビを出し、真ん中に画面ごとの内容（Outlet）を出す。
- * ナビの項目は、画面ができたものから足していく。ログアウトは、設定（SC-10）ができるまで自分のアイコンのメニューに置く。
  */
 export function AppLayout() {
   const theme = useTheme()
@@ -45,55 +49,39 @@ export function AppLayout() {
   const location = useLocation()
   const queryClient = useQueryClient()
   const { data: me } = useMe()
-  const notify = useNotify()
-  const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null)
-  const [confirming, setConfirming] = useState(false)
   const [composing, setComposing] = useState(false)
   const navigationType = useNavigationType()
+  const path = location.pathname
 
   // 別の画面へ移ったら、一番上から表示する。ブラウザの戻る・進む（POP）は、ブラウザが元の位置に戻すので触らない
   useEffect(() => {
     if (navigationType !== 'POP') window.scrollTo({ top: 0 })
-  }, [location.pathname, navigationType])
-
-  const logoutMutation = useMutation({
-    mutationFn: logout,
-    // 「ログインしていない」状態にすると、RequireAuth がログイン画面へ移動させる
-    onSuccess: () => {
-      queryClient.removeQueries({ queryKey: ['posts'] })
-      queryClient.removeQueries({ queryKey: ['users'] })
-      queryClient.setQueryData(ME_QUERY_KEY, null)
-    },
-    onError: (error) => notify(error.message, 'error'),
-  })
-
-  // 自分のプロフィール（とそのフォロー一覧）を開いているか。ユーザー名は大文字・小文字を区別しない
-  const myProfile = me ? `/users/${me.username}` : undefined
-  const onMyProfile =
-    !!myProfile && location.pathname.toLowerCase().startsWith(myProfile.toLowerCase())
-  const navValue = location.pathname === '/' ? '/' : onMyProfile ? 'profile' : false
+  }, [path, navigationType])
 
   /** ホームにいるときに「ホーム」を押したら、一番上に戻ってタイムラインを読み込み直す（F-TL-04）。 */
   const onHome = () => {
-    if (location.pathname !== '/') return
+    if (path !== '/') return
     window.scrollTo({ top: 0 })
     void queryClient.resetQueries({ queryKey: QUERY_KEYS.timeline })
   }
 
-  const openMenu = (e: React.MouseEvent<HTMLElement>) => setMenuAnchor(e.currentTarget)
-  const accountMenu = (
-    <Menu anchorEl={menuAnchor} open={menuAnchor !== null} onClose={() => setMenuAnchor(null)}>
-      <MenuItem
-        onClick={() => {
-          setMenuAnchor(null)
-          setConfirming(true)
-        }}
-        disabled={logoutMutation.isPending}
-      >
-        ログアウト
-      </MenuItem>
-    </Menu>
-  )
+  const myProfile = me ? `/users/${me.username}` : undefined
+  const items: NavItem[] = [
+    { label: 'ホーム', to: '/', icon: <Home />, selected: path === '/' },
+    ...(myProfile
+      ? [
+          {
+            label: 'プロフィール',
+            to: myProfile,
+            icon: <Person />,
+            selected: isUnder(path, myProfile),
+          },
+        ]
+      : []),
+    // プロフィールの編集（/settings/profile）も設定の中とみなす
+    { label: '設定', to: '/settings', icon: <Settings />, selected: isUnder(path, '/settings') },
+  ]
+  const onClick = (item: NavItem) => (item.to === '/' ? onHome : undefined)
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh' }}>
@@ -111,25 +99,18 @@ export function AppLayout() {
             RaiseTimeline
           </Typography>
           <List component="nav" aria-label="メインのナビ">
-            <ListItemButton
-              component={RouterLink}
-              to="/"
-              selected={location.pathname === '/'}
-              onClick={onHome}
-            >
-              <ListItemIcon>
-                <Home />
-              </ListItemIcon>
-              <ListItemText primary="ホーム" />
-            </ListItemButton>
-            {myProfile && (
-              <ListItemButton component={RouterLink} to={myProfile} selected={onMyProfile}>
-                <ListItemIcon>
-                  <Person />
-                </ListItemIcon>
-                <ListItemText primary="プロフィール" />
+            {items.map((item) => (
+              <ListItemButton
+                key={item.to}
+                component={RouterLink}
+                to={item.to}
+                selected={item.selected}
+                onClick={onClick(item)}
+              >
+                <ListItemIcon>{item.icon}</ListItemIcon>
+                <ListItemText primary={item.label} />
               </ListItemButton>
-            )}
+            ))}
           </List>
           <Box sx={{ px: 2, mt: 1 }}>
             <Button
@@ -142,10 +123,12 @@ export function AppLayout() {
               投稿する
             </Button>
           </Box>
-          {me && (
+          {me && myProfile && (
+            // 自分のアイコンと名前。押すと自分のプロフィールへ
             <ButtonBase
-              onClick={openMenu}
-              aria-label="アカウントのメニュー"
+              component={RouterLink}
+              to={myProfile}
+              aria-label="自分のプロフィール"
               sx={{
                 mt: 'auto',
                 mx: 2,
@@ -190,49 +173,28 @@ export function AppLayout() {
           sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 'appBar' }}
           elevation={3}
         >
-          <BottomNavigation component="nav" aria-label="メインのナビ" showLabels value={navValue}>
-            <BottomNavigationAction
-              label="ホーム"
-              value="/"
-              icon={<Home />}
-              component={RouterLink}
-              to="/"
-              onClick={onHome}
-            />
-            {myProfile && (
+          <BottomNavigation
+            component="nav"
+            aria-label="メインのナビ"
+            showLabels
+            value={items.find((i) => i.selected)?.to ?? false}
+          >
+            {items.map((item) => (
               <BottomNavigationAction
-                label="プロフィール"
-                value="profile"
-                icon={<Person />}
+                key={item.to}
+                label={item.label}
+                value={item.to}
+                icon={item.icon}
                 component={RouterLink}
-                to={myProfile}
+                to={item.to}
+                onClick={onClick(item)}
               />
-            )}
-            {me && (
-              <BottomNavigationAction
-                label="アカウント"
-                value="account"
-                icon={<UserAvatar user={me} size={24} />}
-                onClick={openMenu}
-                aria-label="アカウントのメニュー"
-              />
-            )}
+            ))}
           </BottomNavigation>
         </Paper>
       )}
 
-      {accountMenu}
       <PostComposer open={composing} onClose={() => setComposing(false)} />
-      <ConfirmDialog
-        open={confirming}
-        title="ログアウトしますか？"
-        confirmLabel="ログアウト"
-        onCancel={() => setConfirming(false)}
-        onConfirm={() => {
-          setConfirming(false)
-          logoutMutation.mutate()
-        }}
-      />
     </Box>
   )
 }
