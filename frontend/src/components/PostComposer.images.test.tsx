@@ -1,6 +1,7 @@
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { prepareImage } from '../imageAttach'
 import { makePost } from '../test/fixtures'
 import { TEST_ME, authResponse, json, renderApp, stubApi } from '../test/render'
 
@@ -101,5 +102,35 @@ describe('画像の添付（画面設計書 5.4）', () => {
     expect(
       await screen.findByRole('dialog', { name: '編集内容を破棄しますか？' }),
     ).toBeInTheDocument()
+  })
+})
+
+describe('品質チェックの修正（Issue #51）', () => {
+  it('B-3 縮小には投稿の既定の大きさを使う（配列の番号を上限として渡さない）', async () => {
+    const { user, dialog, input } = await openComposer()
+    const files = [image('1.png'), image('2.png'), image('3.png')]
+    await user.upload(input, files)
+    await waitFor(() => expect(previews(dialog)).toHaveLength(3))
+    for (const file of files) expect(prepareImage).toHaveBeenCalledWith(file)
+  })
+
+  it('B-1 縮小の途中で閉じたら、次に開いたモーダルに前の画像を足さない', async () => {
+    let finish: (file: File) => void = () => {}
+    vi.mocked(prepareImage).mockImplementationOnce(
+      () => new Promise<File>((resolve) => (finish = resolve)),
+    )
+    const { user, dialog, input } = await openComposer()
+    const file = image('1.png')
+    await user.upload(input, file)
+    // 縮小の途中（添付はまだ 0 枚）なので、確認せずに閉じる
+    await user.click(within(dialog).getByRole('button', { name: '閉じる' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+
+    await user.click(screen.getByRole('button', { name: '投稿する' }))
+    const again = await screen.findByRole('dialog', { name: '投稿を作成' })
+    finish(file)
+    await new Promise((r) => setTimeout(r, 50))
+    expect(previews(again)).toEqual([])
+    expect(URL.createObjectURL).not.toHaveBeenCalled()
   })
 })

@@ -26,8 +26,11 @@ export function PostComposer({ open, onClose }: Props) {
   // 縮小・再エンコードの途中の枚数（終わるまで投稿できない）
   const [preparing, setPreparing] = useState(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  // 閉じるたびに増やす。縮小の途中で閉じたら、終わった画像を次に開いたモーダルに足さないための印
+  const sessionRef = useRef(0)
 
   const close = () => {
+    sessionRef.current += 1
     for (const a of attachments) URL.revokeObjectURL(a.previewUrl)
     setBody('')
     setError(undefined)
@@ -53,9 +56,11 @@ export function PostComposer({ open, onClose }: Props) {
     if (accepted.length === 0) return
 
     setPreparing((n) => n + accepted.length)
+    const session = sessionRef.current
     // 選んだ順を保つため、すべて終わってからまとめて足す
-    const results = await Promise.allSettled(accepted.map(prepareImage))
+    const results = await Promise.allSettled(accepted.map((file) => prepareImage(file)))
     setPreparing((n) => n - accepted.length)
+    if (session !== sessionRef.current) return // 途中で閉じられた
     const added: Attachment[] = []
     for (const result of results) {
       if (result.status === 'fulfilled') {
