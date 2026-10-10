@@ -9,6 +9,8 @@ export const IMAGE_MAX_BYTES = 5 * 1024 * 1024
 export const IMAGE_MAX_COUNT = 4
 /** 縮小するときの長い辺の上限（px）。 */
 export const IMAGE_MAX_SIDE = 2048
+/** アイコンの長い辺の上限（px）。表示は最大 80px なので、高解像度の画面でも足りる大きさにする。 */
+export const AVATAR_MAX_SIDE = 400
 
 /** 選んだファイルを確かめる。添付できなければ誤りの文言（E-10・E-11）を返す。 */
 export function checkImage(file: File): string | undefined {
@@ -18,15 +20,15 @@ export function checkImage(file: File): string | undefined {
 }
 
 /**
- * 送る前に、長い辺を IMAGE_MAX_SIDE まで縮め、同じ形式で描き直す。描き直すと Exif（位置情報など）は消える。
+ * 送る前に、長い辺を maxSide（既定は IMAGE_MAX_SIDE）まで縮め、同じ形式で描き直す。描き直すと Exif（位置情報など）は消える。
  * GIF はアニメーションが止まってしまうので、そのまま送る（GIF には Exif がない）。
  * 描き直して 5MB を超えたとき（大きな PNG など）は、透過を保てる WebP にする。
  */
-export async function prepareImage(file: File): Promise<File> {
+export async function prepareImage(file: File, maxSide: number = IMAGE_MAX_SIDE): Promise<File> {
   if (file.type === 'image/gif') return file
   // 向き（Exif の Orientation）は、描くときに画像へ反映する
   const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' })
-  const scale = Math.min(1, IMAGE_MAX_SIDE / Math.max(bitmap.width, bitmap.height))
+  const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height))
   const canvas = document.createElement('canvas')
   canvas.width = Math.round(bitmap.width * scale)
   canvas.height = Math.round(bitmap.height * scale)

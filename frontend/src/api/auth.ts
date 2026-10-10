@@ -56,3 +56,14 @@ function keep(auth: AuthResponse<Me>): Me {
   setAccessToken(auth.accessToken)
   return auth.user
 }
+
+export type PasswordChangeInput = {
+  currentPassword: string
+  newPassword: string
+  newPasswordConfirmation: string
+}
+
+/** パスワードを変える。この端末のログインはそのまま続く（ほかの端末はログアウトされる）。 */
+export function changePassword(input: PasswordChangeInput): Promise<void> {
+  return request('PUT', '/api/me/password', input)
+}
