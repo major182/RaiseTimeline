@@ -1,11 +1,7 @@
 // タイムライン・いいね・おすすめ・フォローの API（API 設計書 4.2・4.3・4.6・4.7）
 import { request } from './client'
+import { withCursor } from './cursor'
 import type { CursorPage, FollowingTimeline, Post, UserSummary } from './types'
-
-/** 続きを取るときだけ ?cursor= を付ける。カーソルは中身を読まずにそのまま送る（API 設計書 A-3）。 */
-function withCursor(path: string, cursor: string | null): string {
-  return cursor ? `${path}?cursor=${encodeURIComponent(cursor)}` : path
-}
 
 export function getFollowingTimeline(cursor: string | null): Promise<FollowingTimeline> {
   return request('GET', withCursor('/api/timeline/following', cursor))

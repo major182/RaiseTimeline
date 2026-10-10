@@ -1,8 +1,10 @@
 import { Route, Routes } from 'react-router'
 import { PublicOnly, RequireAuth } from './auth/RouteGuards'
 import { AppLayout } from './components/AppLayout'
+import { LikesPage } from './pages/LikesPage'
 import { LoginPage } from './pages/LoginPage'
 import { NotFoundPage } from './pages/NotFoundPage'
+import { PostDetailPage } from './pages/PostDetailPage'
 import { SignupPage } from './pages/SignupPage'
 import { TimelinePage } from './pages/TimelinePage'
 
@@ -18,6 +20,8 @@ export function App() {
         {/* ログイン後の画面は、ナビのある枠の中に出す */}
         <Route element={<AppLayout />}>
           <Route path="/" element={<TimelinePage />} />
+          <Route path="/posts/:postId" element={<PostDetailPage />} />
+          <Route path="/posts/:postId/likes" element={<LikesPage />} />
         </Route>
       </Route>
       <Route path="*" element={<NotFoundPage />} />

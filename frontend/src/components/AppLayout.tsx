@@ -20,8 +20,8 @@ import {
   useTheme,
 } from '@mui/material'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
-import { Outlet, Link as RouterLink, useLocation } from 'react-router'
+import { useEffect, useState } from 'react'
+import { Outlet, Link as RouterLink, useLocation, useNavigationType } from 'react-router'
 import { logout } from '../api/auth'
 import { ME_QUERY_KEY, useMe } from '../auth/useMe'
 import { QUERY_KEYS } from '../queryCache'
@@ -48,6 +48,12 @@ export function AppLayout() {
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null)
   const [confirming, setConfirming] = useState(false)
   const [composing, setComposing] = useState(false)
+  const navigationType = useNavigationType()
+
+  // 別の画面へ移ったら、一番上から表示する。ブラウザの戻る・進む（POP）は、ブラウザが元の位置に戻すので触らない
+  useEffect(() => {
+    if (navigationType !== 'POP') window.scrollTo({ top: 0 })
+  }, [location.pathname, navigationType])
 
   const logoutMutation = useMutation({
     mutationFn: logout,
