@@ -43,3 +43,14 @@ export type CursorPage<T> = { items: T[]; nextCursor: string | null }
 
 /** フォロー中タブ（API 設計書 4.3）。highlights は最初の読み込みのときだけ入る。 */
 export type FollowingTimeline = CursorPage<Post> & { highlights: Post[] }
+
+/** コメント（API 設計書 3.5）。 */
+export type Comment = {
+  id: number
+  postId: number
+  author: UserSummary
+  body: string
+  createdAt: string
+  /** コメントした本人か投稿した本人なら true（削除のメニューを出す。BR-35）。 */
+  deletable: boolean
+}

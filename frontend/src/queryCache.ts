@@ -8,6 +8,9 @@ export const QUERY_KEYS = {
   followingTimeline: ['posts', 'timeline', 'following'] as const,
   allTimeline: ['posts', 'timeline', 'all'] as const,
   recommendations: ['users', 'recommendations'] as const,
+  post: (postId: number) => ['posts', 'detail', postId] as const,
+  comments: (postId: number) => ['comments', postId] as const,
+  likes: (postId: number) => ['users', 'likes', postId] as const,
 }
 
 /** オブジェクトの中の配列 items・highlights と、一覧の pages をたどって、要素を書き換える。 */

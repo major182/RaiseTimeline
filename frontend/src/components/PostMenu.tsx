@@ -13,7 +13,7 @@ import { useNotify } from './SnackbarProvider'
  * 自分の投稿のメニュー（︙。画面設計書 4.1）。「編集」（MD-02）と「削除」（DL-01）。
  * 出すのは自分の投稿のときだけだが、他人の投稿の編集・削除はサーバーも拒否する（NF-SE-04）。
  */
-export function PostMenu({ post }: { post: Post }) {
+export function PostMenu({ post, onDeleted }: { post: Post; onDeleted?: () => void }) {
   const queryClient = useQueryClient()
   const notify = useNotify()
   const [anchor, setAnchor] = useState<HTMLElement | null>(null)
@@ -25,6 +25,7 @@ export function PostMenu({ post }: { post: Post }) {
     onSuccess: () => {
       removePost(queryClient, post.id)
       notify('投稿を削除しました') // I-04
+      onDeleted?.()
     },
     onError: (e) => notify(e.message, 'error'),
   })

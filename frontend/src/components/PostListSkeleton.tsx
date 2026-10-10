@@ -1,10 +1,10 @@
 import { Box, Skeleton, Stack } from '@mui/material'
 
-/** 一覧の最初の読み込み中に出す、投稿カードの形の仮の表示を 3 つ（画面設計書 1.6）。 */
-export function PostListSkeleton() {
+/** 一覧の最初の読み込み中に出す、投稿カードの形の仮の表示（画面設計書 1.6。既定は 3 つ）。 */
+export function PostListSkeleton({ count = 3 }: { count?: number }) {
   return (
     <Box aria-busy="true" aria-label="読み込み中">
-      {[0, 1, 2].map((i) => (
+      {Array.from({ length: count }, (_, i) => (
         <Stack
           key={i}
           direction="row"
