@@ -2,10 +2,11 @@
 import { request } from './client'
 import type { Post } from './types'
 
-/** 投稿する。画像も送れるよう、multipart/form-data で送る（画像の添付は次の Issue で足す）。 */
-export function createPost(body: string): Promise<Post> {
+/** 投稿する。画像も送るので multipart/form-data で送る。画像は送った順が並び順になる。 */
+export function createPost(body: string, images: File[] = []): Promise<Post> {
   const form = new FormData()
   form.append('body', body)
+  for (const image of images) form.append('images', image)
   return request('POST', '/api/posts', form)
 }
 
