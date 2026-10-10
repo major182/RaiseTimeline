@@ -16,7 +16,7 @@
 | 区分 | 採用 |
 |---|---|
 | フロントエンド | TypeScript 6.0.3、React 19.3.0、Vite 8.3.3、Material UI 9.4.0、React Router 8.4.0、TanStack Query 5.104.1、Node.js 24.21.0 (LTS) |
-| バックエンド | Java 25 (LTS)、Spring Boot 4.1.1（Spring Security・OAuth2 Resource Server（JWT）・Spring Data JPA・Flyway・Bean Validation）、AWS SDK for Java 2.55.11、Gradle 9.7.1（Kotlin DSL） |
+| バックエンド | Java 25 (LTS)、Spring Boot 4.1.1（Spring Security・OAuth2 Resource Server（JWT）・Spring Data JPA・Flyway・Bean Validation）、AWS SDK for Java 2.55.11、springdoc-openapi 3.1.1（開発だけ）、Gradle 9.7.1（Kotlin DSL） |
 | データベース | PostgreSQL 18.6（本番は RDS、開発・テストは Docker） |
 | インフラ | AWS（**ALB・EC2・RDS・S3**、SSM パラメータストア・Session Manager、ACM）、Amazon Linux 2023、Terraform 1.16.5 + AWS プロバイダー 6.67.0、GitHub Actions |
 
@@ -154,6 +154,7 @@ cd frontend; npm install; npm run dev     # 画面（http://localhost:5173/）
 ```
 
 - `bootRun`（開発のプロファイル）で起動すると、テストデータ（`db/dev-data/`。DB 設計書 7 章）が入る。`sato@example.com`・`suzuki@example.com`・`tanaka@example.com`、パスワードはどれも `pass1234`。本番・テストには入らない
+- `bootRun` のときだけ、Swagger UI（http://localhost:8080/swagger-ui.html）から API を試せる。ログインの要る API は、ログインの応答の `accessToken` を「Authorize」に入れる
 
 ### 4.2 注意
 

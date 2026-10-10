@@ -14,7 +14,7 @@ import org.springframework.web.servlet.resource.PathResourceResolver;
  *
  * <p>画面の URL（/users/raise_user など）は React Router が画面の中で切り替えるので、サーバーにはその名前のファイルがない。
  * 直接開いたり再読み込みしたりしたときに 404 にならないよう、ファイルがなければ index.html を返す。
- * ただし /api/・/actuator/・/media/ は画面ではないので、index.html を返さず、ふつうの 404（JSON）にする。
+ * ただし /api/・/actuator/・/media/ と Swagger UI（開発だけ）は画面ではないので、index.html を返さず、ふつうの 404（JSON）にする。
  */
 @Configuration
 public class SpaConfig implements WebMvcConfigurer {
@@ -23,7 +23,8 @@ public class SpaConfig implements WebMvcConfigurer {
     private static final String STATIC = "classpath:/static/";
 
     /** index.html を返さない URL の始まり。 */
-    private static final List<String> NOT_SCREENS = List.of("api/", "actuator/", "media/");
+    private static final List<String> NOT_SCREENS =
+            List.of("api/", "actuator/", "media/", "v3/api-docs", "swagger-ui");
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
