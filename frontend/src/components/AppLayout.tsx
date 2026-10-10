@@ -1,6 +1,7 @@
 import Add from '@mui/icons-material/Add'
 import Home from '@mui/icons-material/Home'
 import Person from '@mui/icons-material/PersonOutlined'
+import Search from '@mui/icons-material/Search'
 import Settings from '@mui/icons-material/SettingsOutlined'
 import {
   BottomNavigation,
@@ -68,6 +69,7 @@ export function AppLayout() {
   const myProfile = me ? `/users/${me.username}` : undefined
   const items: NavItem[] = [
     { label: 'ホーム', to: '/', icon: <Home />, selected: path === '/' },
+    { label: '検索', to: '/search', icon: <Search />, selected: path === '/search' },
     ...(myProfile
       ? [
           {

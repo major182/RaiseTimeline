@@ -47,3 +47,8 @@ export function updateAvatar(file: File): Promise<Profile> {
   form.append('file', file)
   return request('PUT', '/api/me/avatar', form)
 }
+
+/** ユーザー名・表示名で探す（1〜50 文字）。 */
+export function searchUsers(q: string, cursor: string | null): Promise<CursorPage<UserSummary>> {
+  return request('GET', withCursor(`/api/users/search?q=${encodeURIComponent(q)}`, cursor))
+}

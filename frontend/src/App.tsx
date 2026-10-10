@@ -8,6 +8,7 @@ import { NotFoundPage } from './pages/NotFoundPage'
 import { PostDetailPage } from './pages/PostDetailPage'
 import { ProfileEditPage } from './pages/ProfileEditPage'
 import { ProfilePage } from './pages/ProfilePage'
+import { SearchPage } from './pages/SearchPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { SignupPage } from './pages/SignupPage'
 import { TimelinePage } from './pages/TimelinePage'
@@ -29,6 +30,7 @@ export function App() {
           <Route path="/users/:username" element={<ProfilePage />} />
           <Route path="/users/:username/following" element={<FollowListPage tab="following" />} />
           <Route path="/users/:username/followers" element={<FollowListPage tab="followers" />} />
+          <Route path="/search" element={<SearchPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/settings/profile" element={<ProfileEditPage />} />
         </Route>
