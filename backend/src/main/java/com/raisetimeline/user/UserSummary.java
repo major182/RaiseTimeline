@@ -1,5 +1,7 @@
 package com.raisetimeline.user;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 /**
  * 利用者の要約（API 設計書 3.1）。一覧の行・投稿者の表示に使う。メールアドレスは含めない。
  *
@@ -7,11 +9,12 @@ package com.raisetimeline.user;
  * @param followedByMe ログインしている利用者がフォローしているか
  * @param isMe ログインしている利用者本人か（true ならフォローボタンを出さない）
  */
+@Schema(description = "利用者の要約。メールアドレスは含めない")
 public record UserSummary(
         long id,
         String username,
         String displayName,
-        String avatarUrl,
+        @Schema(types = {"string", "null"}, description = "アイコンの署名つき URL（期限 1 時間。NF-SE-06）。未設定なら null（画面は既定のアイコン）") String avatarUrl,
         String bio,
-        boolean followedByMe,
-        boolean isMe) {}
+        @Schema(description = "ログインしている利用者がフォローしているか") boolean followedByMe,
+        @Schema(description = "ログインしている利用者本人か（true ならフォローボタンを出さない）") boolean isMe) {}

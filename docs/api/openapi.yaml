@@ -1,0 +1,1773 @@
+openapi: 3.1.0
+info:
+  description: |-
+    タイムライン型 SNS（RaiseTimeline）の API。
+    方針・認証・エラー・一覧の考え方は API 設計書（docs/05_api-design.md）を参照。
+    エラーはすべて ProblemDetail（RFC 9457）に code（エラーの種類）を加えて返す。
+  title: RaiseTimeline API
+  version: v1
+servers:
+- url: /
+security:
+- bearerAuth: []
+tags:
+- description: API 設計書 4.6
+  name: いいね
+- description: API 設計書 4.4
+  name: 投稿
+- description: API 設計書 4.3
+  name: タイムライン
+- description: API 設計書 4.2
+  name: 利用者・プロフィール
+- description: API 設計書 4.5
+  name: コメント
+- description: API 設計書 4.7
+  name: フォロー
+- description: 登録・ログイン・トークンの取り直し・ログアウト・パスワードの変更（API 設計書 2.2・4.1）
+  name: 認証
+paths:
+  /api/auth/login:
+    post:
+      description: 未登録のメールアドレスも LOGIN_FAILED にする（BR-09）。続けて失敗すると一時停止する（BR-08）
+      operationId: login
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+          description: ログインした
+          headers:
+            Set-Cookie:
+              description: REFRESH_TOKEN（HttpOnly・Secure・SameSite=Strict・Path=/api/auth、期限
+                7 日。開発環境だけ Secure なし）
+              schema:
+                type: string
+              style: simple
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`VALIDATION_FAILED`：入力内容を確認してください'
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`LOGIN_FAILED`：メールアドレスかパスワードが違います<br>`LOGIN_LOCKED`：ログインに続けて失敗したため、しばらくログインできません。15
+            分ほどたってからお試しください'
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`INTERNAL_ERROR`：エラーが発生しました。時間をおいてもう一度お試しください'
+      security: []
+      summary: ログイン
+      tags:
+      - 認証
+  /api/auth/logout:
+    post:
+      description: リフレッシュトークンを無効にして Cookie を消す。トークンがない・無効でも 204
+      operationId: logout
+      parameters:
+      - description: CSRF の対策。値は RaiseTimeline。ないときは 403（CSRF_INVALID）
+        example: RaiseTimeline
+        in: header
+        name: X-Requested-With
+        required: true
+        schema:
+          type: string
+      - description: リフレッシュトークン
+        in: cookie
+        name: REFRESH_TOKEN
+        schema:
+          type: string
+      responses:
+        "204":
+          description: ログアウトした（REFRESH_TOKEN の Cookie を消す）
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`CSRF_INVALID`：エラーが発生しました。時間をおいてもう一度お試しください'
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`INTERNAL_ERROR`：エラーが発生しました。時間をおいてもう一度お試しください'
+      security: []
+      summary: ログアウト
+      tags:
+      - 認証
+  /api/auth/me:
+    get:
+      description: メールアドレスを返すのはこの API だけ
+      operationId: me
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MeResponse"
+          description: OK
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`UNAUTHENTICATED`：ログインの有効期限が切れました。もう一度ログインしてください'
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`INTERNAL_ERROR`：エラーが発生しました。時間をおいてもう一度お試しください'
+      summary: ログインしている利用者
+      tags:
+      - 認証
+  /api/auth/refresh:
+    post:
+      description: リフレッシュトークンも新しくなる。無効にしたトークンが再び送られたら、その利用者のトークンをすべて無効にして 401
+      operationId: refresh
+      parameters:
+      - description: CSRF の対策。値は RaiseTimeline。ないときは 403（CSRF_INVALID）
+        example: RaiseTimeline
+        in: header
+        name: X-Requested-With
+        required: true
+        schema:
+          type: string
+      - description: リフレッシュトークン
+        in: cookie
+        name: REFRESH_TOKEN
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+          description: 取り直した
+          headers:
+            Set-Cookie:
+              description: REFRESH_TOKEN（HttpOnly・Secure・SameSite=Strict・Path=/api/auth、期限
+                7 日。開発環境だけ Secure なし）
+              schema:
+                type: string
+              style: simple
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`UNAUTHENTICATED`：ログインの有効期限が切れました。もう一度ログインしてください'
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`CSRF_INVALID`：エラーが発生しました。時間をおいてもう一度お試しください'
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`INTERNAL_ERROR`：エラーが発生しました。時間をおいてもう一度お試しください'
+      security: []
+      summary: アクセストークンの取り直し
+      tags:
+      - 認証
+  /api/auth/signup:
+    post:
+      description: 登録したら、そのままログインした状態になる。表示名はユーザー名と同じ値になる（BR-01）
+      operationId: signup
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignupRequest"
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+          description: 登録した
+          headers:
+            Set-Cookie:
+              description: REFRESH_TOKEN（HttpOnly・Secure・SameSite=Strict・Path=/api/auth、期限
+                7 日。開発環境だけ Secure なし）
+              schema:
+                type: string
+              style: simple
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`VALIDATION_FAILED`：入力内容を確認してください'
+        "409":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`CONFLICT`：入力内容を確認してください'
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`INTERNAL_ERROR`：エラーが発生しました。時間をおいてもう一度お試しください'
+      security: []
+      summary: 利用者登録
+      tags:
+      - 認証
+  /api/comments/{commentId}:
+    delete:
+      description: 消せるのはコメントした本人と、投稿した本人（BR-35）
+      operationId: delete_1
+      parameters:
+      - in: path
+        name: commentId
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "204":
+          description: 消した
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`UNAUTHENTICATED`：ログインの有効期限が切れました。もう一度ログインしてください'
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`FORBIDDEN`：この操作はできません'
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`NOT_FOUND`：見つかりません'
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`INTERNAL_ERROR`：エラーが発生しました。時間をおいてもう一度お試しください'
+      summary: コメントを消す
+      tags:
+      - コメント
+  /api/me/avatar:
+    put:
+      description: file に画像を 1 枚（5MB まで）。送らなければ 400（errors の REQUIRED）。古いファイルは消す
+      operationId: changeAvatar
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProfileResponse"
+          description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`VALIDATION_FAILED`：入力内容を確認してください'
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`UNAUTHENTICATED`：ログインの有効期限が切れました。もう一度ログインしてください'
+        "413":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`IMAGE_TOO_LARGE`：5MB 以下の画像を選んでください'
+        "415":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`IMAGE_TYPE_INVALID`：JPEG・PNG・WebP・GIF の画像を選んでください'
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`INTERNAL_ERROR`：エラーが発生しました。時間をおいてもう一度お試しください'
+      summary: アイコンの変更
+      tags:
+      - 利用者・プロフィール
+  /api/me/password:
+    put:
+      description: 今の端末以外のリフレッシュトークンをすべて無効にする
+      operationId: changePassword
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChangePasswordRequest"
+        required: true
+      responses:
+        "204":
+          description: 変更した
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`VALIDATION_FAILED`：入力内容を確認してください<br>`CURRENT_PASSWORD_WRONG`：現在のパスワードが違います'
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`UNAUTHENTICATED`：ログインの有効期限が切れました。もう一度ログインしてください'
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`INTERNAL_ERROR`：エラーが発生しました。時間をおいてもう一度お試しください'
+      summary: パスワードの変更
+      tags:
+      - 認証
+  /api/me/profile:
+    patch:
+      description: 送った項目だけを変える（null の項目は変えない）。自分の今のユーザー名は「使われている」にしない
+      operationId: updateProfile
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProfileRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProfileResponse"
+          description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`VALIDATION_FAILED`：入力内容を確認してください'
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`UNAUTHENTICATED`：ログインの有効期限が切れました。もう一度ログインしてください'
+        "409":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`CONFLICT`：入力内容を確認してください'
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`INTERNAL_ERROR`：エラーが発生しました。時間をおいてもう一度お試しください'
+      summary: プロフィールの編集
+      tags:
+      - 利用者・プロフィール
+  /api/posts:
+    post:
+      description: 本文（0〜280 文字）と画像（0〜4 枚、1 枚 5MB まで。送った順が並び順）。本文も画像もなければ POST_EMPTY（BR-11）
+      operationId: create
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/CreatePostRequest"
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PostResponse"
+          description: 投稿した
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`VALIDATION_FAILED`：入力内容を確認してください<br>`POST_EMPTY`：入力してください<br>`IMAGE_TOO_MANY`：画像は
+            4 枚まで添付できます'
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`UNAUTHENTICATED`：ログインの有効期限が切れました。もう一度ログインしてください'
+        "413":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`IMAGE_TOO_LARGE`：5MB 以下の画像を選んでください'
+        "415":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`IMAGE_TYPE_INVALID`：JPEG・PNG・WebP・GIF の画像を選んでください'
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`INTERNAL_ERROR`：エラーが発生しました。時間をおいてもう一度お試しください'
+      summary: 投稿する
+      tags:
+      - 投稿
+  /api/posts/{postId}:
+    delete:
+      description: コメント・いいね・画像も消える（BR-13）
+      operationId: delete
+      parameters:
+      - in: path
+        name: postId
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "204":
+          description: 消した
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`UNAUTHENTICATED`：ログインの有効期限が切れました。もう一度ログインしてください'
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`FORBIDDEN`：この操作はできません'
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`NOT_FOUND`：見つかりません'
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`INTERNAL_ERROR`：エラーが発生しました。時間をおいてもう一度お試しください'
+      summary: 投稿を消す
+      tags:
+      - 投稿
+    get:
+      description: likedVia は常に null
+      operationId: get
+      parameters:
+      - in: path
+        name: postId
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PostResponse"
+          description: OK
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`UNAUTHENTICATED`：ログインの有効期限が切れました。もう一度ログインしてください'
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`NOT_FOUND`：見つかりません'
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`INTERNAL_ERROR`：エラーが発生しました。時間をおいてもう一度お試しください'
+      summary: 投稿の詳細
+      tags:
+      - 投稿
+    patch:
+      description: 変えられるのは本文だけ（BR-15）。editedAt を今にする。画像のない投稿で本文を空にしたら POST_EMPTY
+      operationId: update
+      parameters:
+      - in: path
+        name: postId
+        required: true
+        schema:
+          type: integer
+          format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdatePostRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PostResponse"
+          description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`VALIDATION_FAILED`：入力内容を確認してください<br>`POST_EMPTY`：入力してください'
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`UNAUTHENTICATED`：ログインの有効期限が切れました。もう一度ログインしてください'
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`FORBIDDEN`：この操作はできません'
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`NOT_FOUND`：見つかりません'
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`INTERNAL_ERROR`：エラーが発生しました。時間をおいてもう一度お試しください'
+      summary: 投稿の本文を変える
+      tags:
+      - 投稿
+  /api/posts/{postId}/comments:
+    get:
+      description: 古い順。20 件ずつ。続きは nextCursor を cursor に付けて呼ぶ（API 設計書 2.5）
+      operationId: list
+      parameters:
+      - in: path
+        name: postId
+        required: true
+        schema:
+          type: integer
+          format: int64
+      - in: query
+        name: cursor
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CursorPageCommentResponse"
+          description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`VALIDATION_FAILED`：入力内容を確認してください'
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`UNAUTHENTICATED`：ログインの有効期限が切れました。もう一度ログインしてください'
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`NOT_FOUND`：見つかりません'
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`INTERNAL_ERROR`：エラーが発生しました。時間をおいてもう一度お試しください'
+      summary: コメントの一覧
+      tags:
+      - コメント
+    post:
+      description: 本文は 1〜280 文字（BR-30）
+      operationId: create_1
+      parameters:
+      - in: path
+        name: postId
+        required: true
+        schema:
+          type: integer
+          format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCommentRequest"
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommentResponse"
+          description: コメントした
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`VALIDATION_FAILED`：入力内容を確認してください'
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`UNAUTHENTICATED`：ログインの有効期限が切れました。もう一度ログインしてください'
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`NOT_FOUND`：見つかりません'
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`INTERNAL_ERROR`：エラーが発生しました。時間をおいてもう一度お試しください'
+      summary: コメントする
+      tags:
+      - コメント
+  /api/posts/{postId}/like:
+    delete:
+      description: いいねしていなくても何も変えずに今の状態を返す（A-4）
+      operationId: unlike
+      parameters:
+      - in: path
+        name: postId
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LikeResponse"
+          description: OK
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`UNAUTHENTICATED`：ログインの有効期限が切れました。もう一度ログインしてください'
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`NOT_FOUND`：見つかりません'
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`INTERNAL_ERROR`：エラーが発生しました。時間をおいてもう一度お試しください'
+      summary: いいねを取り消す
+      tags:
+      - いいね
+    put:
+      description: いいね済みでも何も変えずに今の状態を返す（A-4）
+      operationId: like
+      parameters:
+      - in: path
+        name: postId
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LikeResponse"
+          description: OK
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`UNAUTHENTICATED`：ログインの有効期限が切れました。もう一度ログインしてください'
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`NOT_FOUND`：見つかりません'
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`INTERNAL_ERROR`：エラーが発生しました。時間をおいてもう一度お試しください'
+      summary: いいねする
+      tags:
+      - いいね
+  /api/posts/{postId}/likes:
+    get:
+      description: いいねした時刻の新しい順。20 件ずつ。続きは nextCursor を cursor に付けて呼ぶ（API 設計書 2.5）
+      operationId: likers
+      parameters:
+      - in: path
+        name: postId
+        required: true
+        schema:
+          type: integer
+          format: int64
+      - in: query
+        name: cursor
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CursorPageUserSummary"
+          description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`VALIDATION_FAILED`：入力内容を確認してください'
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`UNAUTHENTICATED`：ログインの有効期限が切れました。もう一度ログインしてください'
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`NOT_FOUND`：見つかりません'
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`INTERNAL_ERROR`：エラーが発生しました。時間をおいてもう一度お試しください'
+      summary: いいねした人の一覧
+      tags:
+      - いいね
+  /api/timeline/all:
+    get:
+      description: 全員の投稿の新しい順。20 件ずつ。続きは nextCursor を cursor に付けて呼ぶ（API 設計書 2.5）
+      operationId: all
+      parameters:
+      - in: query
+        name: cursor
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CursorPagePostResponse"
+          description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`VALIDATION_FAILED`：入力内容を確認してください'
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`UNAUTHENTICATED`：ログインの有効期限が切れました。もう一度ログインしてください'
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`INTERNAL_ERROR`：エラーが発生しました。時間をおいてもう一度お試しください'
+      summary: 全体タブ
+      tags:
+      - タイムライン
+  /api/timeline/following:
+    get:
+      description: フォロー中の人と自分の投稿、フォロー中の人のいいね経由の投稿。カーソルなしで呼んだときだけ留守中のハイライトを highlights
+        に入れ、最後に開いた時刻を更新する（DB 設計書 5.3）。20 件ずつ。続きは nextCursor を cursor に付けて呼ぶ（API 設計書
+        2.5）
+      operationId: following_1
+      parameters:
+      - in: query
+        name: cursor
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FollowingTimelineResponse"
+          description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`VALIDATION_FAILED`：入力内容を確認してください'
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`UNAUTHENTICATED`：ログインの有効期限が切れました。もう一度ログインしてください'
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`INTERNAL_ERROR`：エラーが発生しました。時間をおいてもう一度お試しください'
+      summary: フォロー中タブ
+      tags:
+      - タイムライン
+  /api/users/by-username/{username}:
+    get:
+      description: 大文字・小文字を区別せずに探す
+      operationId: byUsername
+      parameters:
+      - in: path
+        name: username
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProfileResponse"
+          description: OK
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`UNAUTHENTICATED`：ログインの有効期限が切れました。もう一度ログインしてください'
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`NOT_FOUND`：見つかりません'
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`INTERNAL_ERROR`：エラーが発生しました。時間をおいてもう一度お試しください'
+      summary: ユーザー名でプロフィールを取る
+      tags:
+      - 利用者・プロフィール
+  /api/users/recommendations:
+    get:
+      description: 最大 5 人。続きはない
+      operationId: recommendations
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ItemsUserSummary"
+          description: OK
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`UNAUTHENTICATED`：ログインの有効期限が切れました。もう一度ログインしてください'
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`INTERNAL_ERROR`：エラーが発生しました。時間をおいてもう一度お試しください'
+      summary: おすすめの利用者
+      tags:
+      - 利用者・プロフィール
+  /api/users/search:
+    get:
+      description: q は 1〜50 文字（QUERY_LENGTH）。20 件ずつ。続きは nextCursor を cursor に付けて呼ぶ（API
+        設計書 2.5）
+      operationId: search
+      parameters:
+      - in: query
+        name: q
+        required: false
+        schema:
+          type: string
+      - in: query
+        name: cursor
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CursorPageUserSummary"
+          description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`VALIDATION_FAILED`：入力内容を確認してください'
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`UNAUTHENTICATED`：ログインの有効期限が切れました。もう一度ログインしてください'
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`INTERNAL_ERROR`：エラーが発生しました。時間をおいてもう一度お試しください'
+      summary: 利用者の検索
+      tags:
+      - 利用者・プロフィール
+  /api/users/{userId}:
+    get:
+      operationId: byId
+      parameters:
+      - in: path
+        name: userId
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProfileResponse"
+          description: OK
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`UNAUTHENTICATED`：ログインの有効期限が切れました。もう一度ログインしてください'
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`NOT_FOUND`：見つかりません'
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`INTERNAL_ERROR`：エラーが発生しました。時間をおいてもう一度お試しください'
+      summary: ID でプロフィールを取る
+      tags:
+      - 利用者・プロフィール
+  /api/users/{userId}/follow:
+    delete:
+      description: 何度送っても結果は同じ（A-4）
+      operationId: unfollow
+      parameters:
+      - in: path
+        name: userId
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "204":
+          description: やめた
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`UNAUTHENTICATED`：ログインの有効期限が切れました。もう一度ログインしてください'
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`NOT_FOUND`：見つかりません'
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`INTERNAL_ERROR`：エラーが発生しました。時間をおいてもう一度お試しください'
+      summary: フォローをやめる
+      tags:
+      - フォロー
+    put:
+      description: 何度送っても結果は同じ（A-4）。自分自身は 400（BR-43）
+      operationId: follow
+      parameters:
+      - in: path
+        name: userId
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "204":
+          description: フォローした
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`VALIDATION_FAILED`：入力内容を確認してください'
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`UNAUTHENTICATED`：ログインの有効期限が切れました。もう一度ログインしてください'
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`NOT_FOUND`：見つかりません'
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`INTERNAL_ERROR`：エラーが発生しました。時間をおいてもう一度お試しください'
+      summary: フォローする
+      tags:
+      - フォロー
+  /api/users/{userId}/followers:
+    get:
+      description: フォローされた時刻の新しい順。20 件ずつ。続きは nextCursor を cursor に付けて呼ぶ（API 設計書 2.5）
+      operationId: followers
+      parameters:
+      - in: path
+        name: userId
+        required: true
+        schema:
+          type: integer
+          format: int64
+      - in: query
+        name: cursor
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CursorPageUserSummary"
+          description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`VALIDATION_FAILED`：入力内容を確認してください'
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`UNAUTHENTICATED`：ログインの有効期限が切れました。もう一度ログインしてください'
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`NOT_FOUND`：見つかりません'
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`INTERNAL_ERROR`：エラーが発生しました。時間をおいてもう一度お試しください'
+      summary: フォロワーの一覧
+      tags:
+      - フォロー
+  /api/users/{userId}/following:
+    get:
+      description: フォローした時刻の新しい順。20 件ずつ。続きは nextCursor を cursor に付けて呼ぶ（API 設計書 2.5）
+      operationId: following
+      parameters:
+      - in: path
+        name: userId
+        required: true
+        schema:
+          type: integer
+          format: int64
+      - in: query
+        name: cursor
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CursorPageUserSummary"
+          description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`VALIDATION_FAILED`：入力内容を確認してください'
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`UNAUTHENTICATED`：ログインの有効期限が切れました。もう一度ログインしてください'
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`NOT_FOUND`：見つかりません'
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`INTERNAL_ERROR`：エラーが発生しました。時間をおいてもう一度お試しください'
+      summary: フォローの一覧
+      tags:
+      - フォロー
+  /api/users/{userId}/posts:
+    get:
+      description: 新しい順。20 件ずつ。続きは nextCursor を cursor に付けて呼ぶ（API 設計書 2.5）
+      operationId: byUser
+      parameters:
+      - in: path
+        name: userId
+        required: true
+        schema:
+          type: integer
+          format: int64
+      - in: query
+        name: cursor
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CursorPagePostResponse"
+          description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`VALIDATION_FAILED`：入力内容を確認してください'
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`UNAUTHENTICATED`：ログインの有効期限が切れました。もう一度ログインしてください'
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`NOT_FOUND`：見つかりません'
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`INTERNAL_ERROR`：エラーが発生しました。時間をおいてもう一度お試しください'
+      summary: 利用者ごとの投稿一覧
+      tags:
+      - タイムライン
+components:
+  schemas:
+    AuthResponse:
+      type: object
+      description: 登録・ログイン・取り直しの応答。リフレッシュトークンは本文ではなく Cookie で返す
+      properties:
+        accessToken:
+          type: string
+          description: "アクセストークン（期限 15 分）。Authorization: Bearer で送る。画面はメモリにだけ置く"
+        expiresIn:
+          type: integer
+          format: int64
+          description: アクセストークンの残りの秒数
+          example: 900
+        tokenType:
+          type: string
+          example: Bearer
+        user:
+          $ref: "#/components/schemas/MeResponse"
+      required:
+      - accessToken
+      - expiresIn
+      - tokenType
+      - user
+    ChangePasswordRequest:
+      type: object
+      properties:
+        currentPassword:
+          type: string
+          minLength: 1
+        newPassword:
+          type: string
+          minLength: 1
+          pattern: "^(?=.*[A-Za-z])(?=.*[0-9]).{8,72}$"
+        newPasswordConfirmation:
+          type: string
+          minLength: 1
+      required:
+      - currentPassword
+      - newPassword
+      - newPasswordConfirmation
+    CommentResponse:
+      type: object
+      properties:
+        author:
+          $ref: "#/components/schemas/UserSummary"
+        body:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        deletable:
+          type: boolean
+          description: コメントした本人か投稿した本人なら true（BR-35）。true のときだけ画面は削除のメニューを出す
+        id:
+          type: integer
+          format: int64
+        postId:
+          type: integer
+          format: int64
+      required:
+      - author
+      - body
+      - createdAt
+      - deletable
+      - id
+      - postId
+    CreateCommentRequest:
+      type: object
+      properties:
+        body:
+          type: string
+          maxLength: 280
+          minLength: 1
+      required:
+      - body
+    CreatePostRequest:
+      type: object
+      properties:
+        body:
+          type: string
+          description: 本文（0〜280 文字）
+          maxLength: 280
+        images:
+          type: array
+          description: 画像（0〜4 枚、1 枚 5MB まで。JPEG・PNG・WebP・GIF。送った順が並び順）
+          items:
+            type: string
+            format: binary
+    CursorPageCommentResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          description: 一覧の中身（最大 20 件）
+          items:
+            $ref: "#/components/schemas/CommentResponse"
+        nextCursor:
+          type:
+          - string
+          - "null"
+          description: 続きを取るためのカーソル。続きがなければ null
+      required:
+      - items
+      - nextCursor
+    CursorPagePostResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          description: 一覧の中身（最大 20 件）
+          items:
+            $ref: "#/components/schemas/PostResponse"
+        nextCursor:
+          type:
+          - string
+          - "null"
+          description: 続きを取るためのカーソル。続きがなければ null
+      required:
+      - items
+      - nextCursor
+    CursorPageUserSummary:
+      type: object
+      properties:
+        items:
+          type: array
+          description: 一覧の中身（最大 20 件）
+          items:
+            $ref: "#/components/schemas/UserSummary"
+        nextCursor:
+          type:
+          - string
+          - "null"
+          description: 続きを取るためのカーソル。続きがなければ null
+      required:
+      - items
+      - nextCursor
+    FieldErrorDetail:
+      type: object
+      properties:
+        code:
+          type: string
+          description: 誤りの種類
+          enum:
+          - REQUIRED
+          - EMAIL_INVALID
+          - EMAIL_TAKEN
+          - PASSWORD_WEAK
+          - PASSWORD_MISMATCH
+          - CURRENT_PASSWORD_WRONG
+          - USERNAME_INVALID
+          - USERNAME_TAKEN
+          - DISPLAY_NAME_LENGTH
+          - BIO_TOO_LONG
+          - BODY_TOO_LONG
+          - QUERY_LENGTH
+        field:
+          type: string
+          description: 入力欄の名前
+          example: password
+        message:
+          type: string
+          description: 画面にそのまま出せる日本語
+      required:
+      - code
+      - field
+      - message
+    FollowingTimelineResponse:
+      type: object
+      properties:
+        highlights:
+          type: array
+          description: 留守中のハイライト（最大 3 件）。カーソルなしで呼んだときだけ入る。続きの呼び出しでは空
+          items:
+            $ref: "#/components/schemas/PostResponse"
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/PostResponse"
+        nextCursor:
+          type:
+          - string
+          - "null"
+          description: 続きを取るためのカーソル。続きがなければ null
+      required:
+      - highlights
+      - items
+      - nextCursor
+    Image:
+      type: object
+      properties:
+        height:
+          type: integer
+          format: int32
+        url:
+          type: string
+          description: 署名つき URL（期限 1 時間）
+        width:
+          type: integer
+          format: int32
+      required:
+      - height
+      - url
+      - width
+    ItemsUserSummary:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/UserSummary"
+      required:
+      - items
+    LikeResponse:
+      type: object
+      description: 操作のあとの状態
+      properties:
+        likeCount:
+          type: integer
+          format: int64
+        liked:
+          type: boolean
+      required:
+      - likeCount
+      - liked
+    LikedVia:
+      type: object
+      description: 「山田さん、ほか 2 人がいいねしました」の表示
+      properties:
+        displayName:
+          type: string
+        othersCount:
+          type: integer
+          format: int64
+          description: 表示名を出した人のほかに、いいねしたフォロー中の人の数
+        username:
+          type: string
+      required:
+      - displayName
+      - othersCount
+      - username
+    LoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          minLength: 1
+        password:
+          type: string
+          minLength: 1
+      required:
+      - email
+      - password
+    MeResponse:
+      type: object
+      description: ログインしている利用者
+      properties:
+        avatarUrl:
+          type:
+          - string
+          - "null"
+          description: アイコンの署名つき URL（期限 1 時間。NF-SE-06）。未設定なら null（画面は既定のアイコン）
+        displayName:
+          type: string
+        email:
+          type: string
+          description: メールアドレス。返すのはこの形だけ
+        id:
+          type: integer
+          format: int64
+        username:
+          type: string
+      required:
+      - avatarUrl
+      - displayName
+      - email
+      - id
+      - username
+    PostResponse:
+      type: object
+      description: 投稿。インプレッション数・リツイートの数は持たない（BR-40、BR-41）
+      properties:
+        author:
+          $ref: "#/components/schemas/UserSummary"
+        body:
+          type: string
+        commentCount:
+          type: integer
+          format: int64
+        createdAt:
+          type: string
+          format: date-time
+        editedAt:
+          type:
+          - string
+          - "null"
+          format: date-time
+          description: 最後に編集した時刻。未編集なら null（BR-16）
+        id:
+          type: integer
+          format: int64
+        images:
+          type: array
+          description: 画像（並び順のとおり）。なければ空の配列
+          items:
+            $ref: "#/components/schemas/Image"
+        isMine:
+          type: boolean
+          description: true のときだけ画面は編集・削除のメニューを出す（BR-12）
+        likeCount:
+          type: integer
+          format: int64
+        likedByMe:
+          type: boolean
+        likedVia:
+          $ref: "#/components/schemas/LikedVia"
+          description: フォロー中タブのいいね経由の投稿だけ値がある。ほかは null
+      required:
+      - author
+      - body
+      - commentCount
+      - createdAt
+      - editedAt
+      - id
+      - images
+      - isMine
+      - likeCount
+      - likedByMe
+      - likedVia
+    Problem:
+      type: object
+      description: エラーの本文（ProblemDetail（RFC 9457）＋ code・errors）
+      properties:
+        code:
+          type: string
+          description: エラーの種類。画面はこの値でメッセージを選ぶ
+          enum:
+          - VALIDATION_FAILED
+          - POST_EMPTY
+          - IMAGE_TOO_MANY
+          - CURRENT_PASSWORD_WRONG
+          - UNAUTHENTICATED
+          - LOGIN_FAILED
+          - LOGIN_LOCKED
+          - FORBIDDEN
+          - CSRF_INVALID
+          - NOT_FOUND
+          - CONFLICT
+          - IMAGE_TOO_LARGE
+          - IMAGE_TYPE_INVALID
+          - INTERNAL_ERROR
+        detail:
+          type: string
+          description: 画面にそのまま出せる日本語
+          example: 入力内容を確認してください
+        errors:
+          type: array
+          description: 入力欄ごとの誤り。400（VALIDATION_FAILED）と 409 のときだけ付く
+          items:
+            $ref: "#/components/schemas/FieldErrorDetail"
+        instance:
+          type: string
+          example: /api/auth/signup
+        status:
+          type: integer
+          format: int32
+          example: 400
+        title:
+          type: string
+          example: Bad Request
+      required:
+      - code
+      - detail
+      - instance
+      - status
+      - title
+    ProfileResponse:
+      type: object
+      description: プロフィール（UserSummary の項目に、フォロー数・フォロワー数・登録日時を足したもの）
+      properties:
+        avatarUrl:
+          type:
+          - string
+          - "null"
+          description: アイコンの署名つき URL（期限 1 時間。NF-SE-06）。未設定なら null（画面は既定のアイコン）
+        bio:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+          description: 登録日時
+        displayName:
+          type: string
+        followedByMe:
+          type: boolean
+        followerCount:
+          type: integer
+          format: int64
+        followingCount:
+          type: integer
+          format: int64
+        id:
+          type: integer
+          format: int64
+        isMe:
+          type: boolean
+          description: ログインしている利用者本人か
+        username:
+          type: string
+      required:
+      - avatarUrl
+      - bio
+      - createdAt
+      - displayName
+      - followedByMe
+      - followerCount
+      - followingCount
+      - id
+      - isMe
+      - username
+    SignupRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 254
+          minLength: 0
+        password:
+          type: string
+          minLength: 1
+          pattern: "^(?=.*[A-Za-z])(?=.*[0-9]).{8,72}$"
+        passwordConfirmation:
+          type: string
+          minLength: 1
+        username:
+          type: string
+          minLength: 1
+          pattern: "^[A-Za-z0-9_]{4,15}$"
+      required:
+      - email
+      - password
+      - passwordConfirmation
+      - username
+    UpdatePostRequest:
+      type: object
+      properties:
+        body:
+          type: string
+          maxLength: 280
+      required:
+      - body
+    UpdateProfileRequest:
+      type: object
+      description: 送った項目だけを変える（null・省略した項目は変えない）。文字数はコードポイントで数える
+      properties:
+        bio:
+          type: string
+          maxLength: 160
+        displayName:
+          type: string
+          maxLength: 50
+          minLength: 1
+        username:
+          type: string
+          pattern: "^[A-Za-z0-9_]{4,15}$"
+    UserSummary:
+      type: object
+      description: 利用者の要約。メールアドレスは含めない
+      properties:
+        avatarUrl:
+          type:
+          - string
+          - "null"
+          description: アイコンの署名つき URL（期限 1 時間。NF-SE-06）。未設定なら null（画面は既定のアイコン）
+        bio:
+          type: string
+        displayName:
+          type: string
+        followedByMe:
+          type: boolean
+          description: ログインしている利用者がフォローしているか
+        id:
+          type: integer
+          format: int64
+        isMe:
+          type: boolean
+          description: ログインしている利用者本人か（true ならフォローボタンを出さない）
+        username:
+          type: string
+      required:
+      - avatarUrl
+      - bio
+      - displayName
+      - followedByMe
+      - id
+      - isMe
+      - username
+  securitySchemes:
+    bearerAuth:
+      bearerFormat: JWT
+      scheme: bearer
+      type: http

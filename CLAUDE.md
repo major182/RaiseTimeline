@@ -100,7 +100,7 @@ gh pr checks <番号>                                        # ④ 実行 ID（r
 | 02 | [技術選定書](docs/02_tech-stack.md) | 使用技術と、選んだ理由・選ばなかった理由。タイムラインの読み込み方式（4.4）の正 |
 | 03 | [DB 設計書](docs/03_db-design.md) | テーブル定義・制約・索引・データの取り出し方（タイムラインの SQL）の正。エンティティとマイグレーションはこれに合わせて書く |
 | 04 | [画面設計書](docs/04_screen-design.md) | 画面の項目・動き・URL・メッセージの文言の正。画面の実装はこれに合わせる |
-| 05 | [API 設計書](docs/05_api-design.md) | API の URL・送る値・返す値・エラーの種類（`code`）の正。コントローラーと画面の通信はこれに合わせる |
+| 05 | [API 設計書](docs/05_api-design.md) | API の方針・共通の仕様・エラーの種類（`code`）・API と画面の対応。送る値・返す値の細かい形は、自動で作る [API 仕様書](docs/api/openapi.yaml)（OpenAPI）が正 |
 
 今後作る予定：テスト仕様書・デプロイ設計書。
 
@@ -155,6 +155,7 @@ cd frontend; npm install; npm run dev     # 画面（http://localhost:5173/）
 
 - `bootRun`（開発のプロファイル）で起動すると、テストデータ（`db/dev-data/`。DB 設計書 7 章）が入る。`sato@example.com`・`suzuki@example.com`・`tanaka@example.com`、パスワードはどれも `pass1234`。本番・テストには入らない
 - `bootRun` のときだけ、Swagger UI（http://localhost:8080/swagger-ui.html）から API を試せる。ログインの要る API は、ログインの応答の `accessToken` を「Authorize」に入れる
+- API を変えたら、`./gradlew test` が書き直す `docs/api/openapi.yaml` も一緒にコミットする（CI が更新忘れを止める）。説明のアノテーションの書き方は API 設計書 5.1。`node scripts/build-api-docs.mjs` で手元に HTML を作れる（Git には入れない）
 
 ### 4.2 注意
 

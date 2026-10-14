@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Hidden;
 
 /**
  * ローカルに保存した画像を返す（開発環境だけ。API 設計書 4.8）。本番は S3 の署名つき URL を使うので、この API はない。
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
  * 署名が違う・期限が切れた・ないときは、どれも 404 にする（どれに当たったかを知らせない）。
  */
 @RestController
+@Hidden // 開発環境だけの API なので、API 仕様書には出さない（API 設計書 4.8 に書く）
 @ConditionalOnProperty(name = "app.storage.type", havingValue = "local", matchIfMissing = true)
 public class MediaController {
 

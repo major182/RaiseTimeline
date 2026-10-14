@@ -3,12 +3,13 @@
 | 項目 | 内容 |
 |---|---|
 | 文書番号 | 05 |
-| 版数 | 0.6 |
+| 版数 | 0.7 |
 | 作成日 | 2026-10-09 |
 | 作成者 | major182 |
 | 前提となる文書 | [01 要件定義書](01_requirements.md)、[01-1 機能一覧](01-1_feature-list.md)、[03 DB 設計書](03_db-design.md)、[04 画面設計書](04_screen-design.md) |
 
-React（画面）と Spring Boot（サーバー）の**約束ごと**。URL・送る値・返す値・エラーの正。
+React（画面）と Spring Boot（サーバー）の**約束ごと**。方針・共通の仕様・API と画面の対応を書く。
+送る値・返す値の細かい形は、コードから自動で作る [API 仕様書（OpenAPI）](api/openapi.yaml)を正とする（5.1）。
 画面の文言は [04 画面設計書](04_screen-design.md) 6章の ID（E-xx・S-xx など）で参照する。
 
 ---
@@ -139,93 +140,36 @@ React（画面）と Spring Boot（サーバー）の**約束ごと**。URL・�
 
 ## 3. データの形
 
-### 3.1 UserSummary（利用者の要約）
+項目の名前・型・必須か・`null` になるかは、[API 仕様書](api/openapi.yaml)の `components.schemas` を正とする（5.1）。主な形と決めごとは次のとおり。
 
-```json
-{
-  "id": 12,
-  "username": "raise_user",
-  "displayName": "レイズ",
-  "avatarUrl": null,
-  "bio": "自己紹介",
-  "followedByMe": false,
-  "isMe": false
-}
-```
+| No | 形 | 仕様書の名前 | 決めごと |
+|---|---|---|---|
+| 3.1 | 利用者の要約 | `UserSummary` | 一覧の行・投稿者の表示に使う。メールアドレスは含めない。`isMe` が `true` ならフォローボタンを出さない |
+| 3.2 | プロフィール | `ProfileResponse` | UserSummary の項目に、フォロー数・フォロワー数・登録日時を足したもの（入れ子にせず平らに並べる） |
+| 3.3 | ログインしている利用者 | `MeResponse` | **メールアドレスを返すのはこの形だけ**（他人のメールアドレスはどの API も返さない） |
+| 3.4 | 投稿 | `PostResponse` | `editedAt` に値があれば「編集済み」（BR-16）。`likedVia` はフォロー中タブのいいね経由の投稿だけ（「山田さん、ほか 2 人がいいねしました」）。`isMine` が `true` のときだけ編集・削除のメニューを出す（BR-12）。インプレッション数・リツイートの数は**持たない**（BR-40、BR-41） |
+| 3.5 | コメント | `CommentResponse` | `deletable` はコメントした本人か投稿した本人なら `true`（BR-35） |
+| 3.6 | ログインの応答 | `AuthResponse` | 登録・ログイン・取り直しの応答。あわせて `REFRESH_TOKEN` Cookie を返す。`expiresIn` はアクセストークンの残りの秒数 |
+| ― | 一覧 | `CursorPage…` | 2.5 の形 |
 
-- `avatarUrl`：未設定なら `null`（画面は既定のアイコン）。画像の URL はどれも期限 1 時間の署名つき URL（NF-SE-06）
-- `isMe` が `true` ならフォローボタンを出さない
-
-### 3.2 Profile（プロフィール）
-
-UserSummary ＋ `followingCount`（フォロー数）・`followerCount`（フォロワー数）・`createdAt`（登録日時）。
-
-### 3.3 Me（ログインしている利用者）
-
-`id`・`username`・`displayName`・`avatarUrl`・`email`。**メールアドレスを返すのはこの形だけ**（他人のメールアドレスはどの API も返さない）。
-
-### 3.6 AuthResponse（ログインの応答）
-
-登録・ログイン・取り直しの応答。あわせて `REFRESH_TOKEN` Cookie を返す。
-
-```json
-{
-  "accessToken": "eyJhbGciOiJIUzI1NiJ9…",
-  "tokenType": "Bearer",
-  "expiresIn": 900,
-  "user": { "…": "Me" }
-}
-```
-
-- `expiresIn` はアクセストークンの残りの秒数
-
-### 3.4 Post（投稿）
-
-```json
-{
-  "id": 345,
-  "author": { "…": "UserSummary" },
-  "body": "本文",
-  "images": [ { "url": "https://…", "width": 1200, "height": 800 } ],
-  "createdAt": "2026-10-09T05:05:00Z",
-  "editedAt": null,
-  "likeCount": 34,
-  "commentCount": 12,
-  "likedByMe": true,
-  "likedVia": null,
-  "isMine": false
-}
-```
-
-| 項目 | 内容 |
-|---|---|
-| `images` | 並び順のとおり。なければ空の配列 |
-| `editedAt` | 未編集なら `null`。値があれば「編集済み」（BR-16） |
-| `likedVia` | フォロー中タブのいいね経由の投稿だけ `{ "displayName": "山田", "username": "yamada", "othersCount": 2 }`（「山田さん、ほか 2 人がいいねしました」）。ほかは `null` |
-| `isMine` | `true` のときだけ編集・削除のメニューを出す（BR-12） |
-
-インプレッション数・リツイートの数は**持たない**（BR-40、BR-41）。
-
-### 3.5 Comment（コメント）
-
-`id`・`postId`・`author`（UserSummary）・`body`・`createdAt`・`deletable`（コメントした本人か投稿した本人なら `true`。BR-35）。
+- 画像の URL（`avatarUrl`・投稿の `images[].url`）はどれも期限 1 時間の署名つき URL（NF-SE-06）。アイコンが未設定なら `null`（画面は既定のアイコン）
 
 ---
 
 ## 4. API
 
-表の「エラー」には、2.2 の 401 と 500 を除いた、その API に特有のものだけを書く。
+送る値・返す値・その API に特有のエラー（`code`）は [API 仕様書](api/openapi.yaml)を正とする（5.1）。ここには、API と画面の対応と、仕様書に書ききれない決めごとを書く。
 
 ### 4.1 認証
 
-| メソッド・パス | 送る値 | 成功 | エラー | 画面 |
-|---|---|---|---|---|
-| `POST /api/auth/signup` | `email`・`password`・`passwordConfirmation`・`username` | 201 AuthResponse（ログインした状態になる） | 400、409（`EMAIL_TAKEN`・`USERNAME_TAKEN`） | SC-02 |
-| `POST /api/auth/login` | `email`・`password` | 200 AuthResponse | 400、401（`LOGIN_FAILED`・`LOGIN_LOCKED`） | SC-01 |
-| `POST /api/auth/refresh` | ―（`REFRESH_TOKEN` Cookie と `X-Requested-With`） | 200 AuthResponse（リフレッシュトークンも新しくなる） | 401、403 | 起動時・期限切れのとき |
-| `POST /api/auth/logout` | ―（`REFRESH_TOKEN` Cookie と `X-Requested-With`） | 204（Cookie を消す） | 403 | SC-10 |
-| `GET /api/auth/me` | ― | 200 Me | 401 | 起動時 |
-| `PUT /api/me/password` | `currentPassword`・`newPassword`・`newPasswordConfirmation` | 204 | 400（`CURRENT_PASSWORD_WRONG` ほか） | SC-10 |
+| メソッド・パス | 内容 | 画面 |
+|---|---|---|
+| `POST /api/auth/signup` | 利用者登録（ログインした状態になる） | SC-02 |
+| `POST /api/auth/login` | ログイン | SC-01 |
+| `POST /api/auth/refresh` | アクセストークンの取り直し（リフレッシュトークンも新しくなる） | 起動時・期限切れのとき |
+| `POST /api/auth/logout` | ログアウト（Cookie を消す） | SC-10 |
+| `GET /api/auth/me` | ログインしている利用者 | 起動時 |
+| `PUT /api/me/password` | パスワードの変更 | SC-10 |
 
 - 登録の表示名はユーザー名と同じ値にする（BR-01）
 - 失敗の回数の数え方は DB 設計書 5.8
@@ -236,37 +180,37 @@ UserSummary ＋ `followingCount`（フォロー数）・`followerCount`（フォ
 
 ### 4.2 利用者・プロフィール
 
-| メソッド・パス | 送る値 | 成功 | エラー | 画面 |
-|---|---|---|---|---|
-| `GET /api/users/by-username/{username}` | ― | 200 Profile | 404 | SC-05、SC-08 |
-| `GET /api/users/{userId}` | ― | 200 Profile | 404 | SC-06 |
-| `PATCH /api/me/profile` | `displayName`・`username`・`bio`（送った項目だけ変える） | 200 Profile | 400、409（`USERNAME_TAKEN`） | SC-06 |
-| `PUT /api/me/avatar` | multipart：`file`（画像 1 枚） | 200 Profile | 413、415 | SC-06 |
-| `GET /api/users/search?q=` | ― | 200 一覧（UserSummary） | 400（`QUERY_LENGTH`） | SC-07 |
-| `GET /api/users/recommendations` | ― | 200 `{ "items": [UserSummary × 最大 5] }` | ― | SC-03、SC-07 |
+| メソッド・パス | 内容 | 画面 |
+|---|---|---|
+| `GET /api/users/by-username/{username}` | ユーザー名でプロフィールを取る | SC-05、SC-08 |
+| `GET /api/users/{userId}` | ID でプロフィールを取る | SC-06 |
+| `PATCH /api/me/profile` | プロフィールの編集（送った項目だけ変える） | SC-06 |
+| `PUT /api/me/avatar` | アイコンの変更（multipart の `file` に画像 1 枚） | SC-06 |
+| `GET /api/users/search?q=` | 利用者の検索 | SC-07 |
+| `GET /api/users/recommendations` | おすすめの利用者（最大 5 人。`{ "items": [...] }` で、続きはない） | SC-03、SC-07 |
 
 - ユーザー名は大文字・小文字を区別せずに探す。自分の今のユーザー名は「使われている」にしない
 - アイコンを変えたら、古いファイルを消す（DB の確定後）。`file` を送らなければ 400（`errors` の `REQUIRED`）
 
 ### 4.3 タイムライン
 
-| メソッド・パス | 成功 | 画面 |
+| メソッド・パス | 内容 | 画面 |
 |---|---|---|
-| `GET /api/timeline/following` | 200 `{ "highlights": [Post × 最大 3], "items": [Post], "nextCursor" }` | SC-03 |
-| `GET /api/timeline/all` | 200 一覧（Post） | SC-03 |
-| `GET /api/users/{userId}/posts` | 200 一覧（Post）。利用者がいなければ 404 | SC-05 |
+| `GET /api/timeline/following` | フォロー中タブ（一覧の形に、留守中のハイライト `highlights`（最大 3 件）を足したもの） | SC-03 |
+| `GET /api/timeline/all` | 全体タブ | SC-03 |
+| `GET /api/users/{userId}/posts` | 利用者ごとの投稿一覧 | SC-05 |
 
 - フォロー中タブは、**カーソルなしで呼んだときだけ**留守中のハイライトを判定して `highlights` に入れ、「最後にタイムラインを開いた時刻」を更新する（DB 設計書 5.3）。続きの呼び出しでは `highlights` は空
 - フォロー中タブのカーソルには、基準の時刻とハイライトに出した投稿の ID も入れる（DB 設計書 5.2）
 
 ### 4.4 投稿
 
-| メソッド・パス | 送る値 | 成功 | エラー | 画面 |
-|---|---|---|---|---|
-| `POST /api/posts` | multipart：`body`（0〜280 文字）、`images`（0〜4 個。送った順が並び順） | 201 Post | 400（`POST_EMPTY`・`IMAGE_TOO_MANY` ほか）、413、415 | MD-01 |
-| `GET /api/posts/{postId}` | ― | 200 Post（`likedVia` は `null`） | 404 | SC-04 |
-| `PATCH /api/posts/{postId}` | `body` | 200 Post（`editedAt` を今にする） | 400、403、404 | MD-02 |
-| `DELETE /api/posts/{postId}` | ― | 204 | 403、404 | DL-01 |
+| メソッド・パス | 内容 | 画面 |
+|---|---|---|
+| `POST /api/posts` | 投稿する（multipart：`body`、`images` は 0〜4 個で送った順が並び順） | MD-01 |
+| `GET /api/posts/{postId}` | 投稿の詳細（`likedVia` は `null`） | SC-04 |
+| `PATCH /api/posts/{postId}` | 本文を変える（`editedAt` を今にする） | MD-02 |
+| `DELETE /api/posts/{postId}` | 投稿を消す | DL-01 |
 
 - 投稿の保存は「画像をすべて確かめる → S3 に保存 → DB に保存」の順。DB の保存に失敗したら、保存した S3 のファイルを消す
 - 編集で変えられるのは本文だけ（BR-15）。画像のない投稿で本文を空にしたら `POST_EMPTY`
@@ -274,32 +218,34 @@ UserSummary ＋ `followingCount`（フォロー数）・`followerCount`（フォ
 
 ### 4.5 コメント
 
-| メソッド・パス | 送る値 | 成功 | エラー | 画面 |
-|---|---|---|---|---|
-| `GET /api/posts/{postId}/comments` | ― | 200 一覧（Comment、**古い順**） | 404 | SC-04 |
-| `POST /api/posts/{postId}/comments` | `body`（1〜280 文字） | 201 Comment | 400、404 | SC-04 |
-| `DELETE /api/comments/{commentId}` | ― | 204 | 403、404 | DL-01 |
+| メソッド・パス | 内容 | 画面 |
+|---|---|---|
+| `GET /api/posts/{postId}/comments` | コメントの一覧（**古い順**） | SC-04 |
+| `POST /api/posts/{postId}/comments` | コメントする（1〜280 文字） | SC-04 |
+| `DELETE /api/comments/{commentId}` | コメントを消す | DL-01 |
 
 ### 4.6 いいね
 
-| メソッド・パス | 成功 | エラー | 画面 |
-|---|---|---|---|
-| `PUT /api/posts/{postId}/like` | 200 `{ "liked": true, "likeCount": 35 }` | 404 | 投稿カード |
-| `DELETE /api/posts/{postId}/like` | 200 `{ "liked": false, "likeCount": 34 }` | 404 | 投稿カード |
-| `GET /api/posts/{postId}/likes` | 200 一覧（UserSummary、いいねした時刻の新しい順） | 404 | SC-09 |
+| メソッド・パス | 内容 | 画面 |
+|---|---|---|
+| `PUT /api/posts/{postId}/like` | いいねする（操作のあとの `liked`・`likeCount` を返す） | 投稿カード |
+| `DELETE /api/posts/{postId}/like` | いいねを取り消す（同上） | 投稿カード |
+| `GET /api/posts/{postId}/likes` | いいねした人の一覧（いいねした時刻の新しい順） | SC-09 |
 
 いいね済みでの PUT、未いいねでの DELETE も、何も変えずに今の状態を返す（A-4）。
 
 ### 4.7 フォロー
 
-| メソッド・パス | 成功 | エラー | 画面 |
-|---|---|---|---|
-| `PUT /api/users/{userId}/follow` | 204 | 400（`VALIDATION_FAILED`。自分自身。BR-43）、404 | 利用者の行、SC-05 |
-| `DELETE /api/users/{userId}/follow` | 204 | 404 | 利用者の行、SC-05 |
-| `GET /api/users/{userId}/following` | 200 一覧（UserSummary、フォローした時刻の新しい順） | 404 | SC-08 |
-| `GET /api/users/{userId}/followers` | 200 一覧（同上） | 404 | SC-08 |
+| メソッド・パス | 内容 | 画面 |
+|---|---|---|
+| `PUT /api/users/{userId}/follow` | フォローする（自分自身は 400 の `VALIDATION_FAILED`。BR-43） | 利用者の行、SC-05 |
+| `DELETE /api/users/{userId}/follow` | フォローをやめる | 利用者の行、SC-05 |
+| `GET /api/users/{userId}/following` | フォローの一覧（フォローした時刻の新しい順） | SC-08 |
+| `GET /api/users/{userId}/followers` | フォロワーの一覧（同上） | SC-08 |
 
 ### 4.8 そのほか
+
+API 仕様書には載せない（Spring Boot の機能か、開発環境だけの API のため）。
 
 | メソッド・パス | 内容 |
 |---|---|
@@ -310,10 +256,22 @@ UserSummary ＋ `followingCount`（フォロー数）・`followerCount`（フォ
 
 ## 5. 実装の注意
 
+### 5.1 API 仕様書（OpenAPI）の自動生成
+
+| 項目 | 内容 |
+|---|---|
+| 置き場所 | [docs/api/openapi.yaml](api/openapi.yaml)（OpenAPI 3.1）。手で書き換えない |
+| 作り方 | backend のテスト（`OpenApiSpecExportTests`）が `/v3/api-docs.yaml` を取り出して書き出す。`./gradlew test`（`check`）のたびに書き直される |
+| 更新忘れの検出 | CI がテストのあとに `git diff --exit-code` で確かめる。API を変えたら、書き出された `openapi.yaml` も一緒にコミットする |
+| 説明の書き方 | Controller に `@Tag`・`@Operation`、成功の状態コードが 200 でなければ `@ApiResponse`、その API に特有のエラーは `@ApiErrors`（401・500 は自動で足す）。ログインの要らない API は `@SecurityRequirements`。DTO の説明・`null` になる項目は `@Schema`。`@CodePointLength` は仕様書に出ないので `@Schema(maxLength)` も書く |
+| 読みやすい HTML | `node scripts/build-api-docs.mjs` で Redoc の HTML（`docs/api/local/index.html`）を作る。**手元で見るだけで、Git には入れない**（`.gitignore`） |
+
+### 5.2 そのほか
+
 - **本人の確認はサービス層で行う**（投稿・コメントの編集と削除。NF-SE-04）。画面でボタンを隠すだけでは、API を直接呼ばれると防げない
 - **画面の URL への直接のアクセス**：`/users/raise_user` などを開いたり再読み込みしたりしたら、Spring Boot は `index.html` を返す（React Router が画面を出す）。`/api/`・`/actuator/`・`/media/` で始まる URL は除く。画面のファイルはログインなしで返す
 - **アップロードの上限**：`spring.servlet.multipart.max-file-size=5MB`、`max-request-size=21MB`（画像 4 枚 + 本文）。超えたら 413（`IMAGE_TOO_LARGE`）
-- **Swagger UI**：springdoc-openapi 3.1.1 で、開発中（`./gradlew bootRun`）だけ `http://localhost:8080/swagger-ui.html` から API を試せる。本番・テストでは `/v3/api-docs`・`/swagger-ui.html` とも 404。ログインの要る API は、ログインの応答の `accessToken` を「Authorize」に入れてから試す（技術選定書 3.2）
+- **Swagger UI**：springdoc-openapi 3.1.1 で、開発中（`./gradlew bootRun`）だけ `http://localhost:8080/swagger-ui.html` から API を試せる。本番では `/v3/api-docs`・`/swagger-ui.html` とも 404（仕様書の書き出しのテストだけ有効にする）。ログインの要る API は、ログインの応答の `accessToken` を「Authorize」に入れてから試す（技術選定書 3.2）
 
 ---
 
@@ -327,3 +285,4 @@ UserSummary ＋ `followingCount`（フォロー数）・`followerCount`（フォ
 | 0.4 | 2026-10-09 | フォローの実装に合わせ、自分自身のフォローの code（VALIDATION_FAILED）を明記 |
 | 0.5 | 2026-10-09 | 画像の実装に合わせ、開発環境の /media をログインではなく署名つき URL で守る形に変更（2.2、4.8）。アイコンの file がないときの 400 を追記 |
 | 0.6 | 2026-10-10 | Swagger UI の導入に合わせ、使い方と本番で無効になることを追記（5 章） |
+| 0.7 | 2026-10-14 | API 仕様書（OpenAPI）の自動生成を追加（5.1）。送る値・返す値・API ごとのエラーは仕様書を正とし、3 章を決めごとだけに、4 章を API と画面の対応と決めごとだけに減らした |

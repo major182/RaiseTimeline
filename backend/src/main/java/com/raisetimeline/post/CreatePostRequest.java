@@ -4,6 +4,8 @@ import com.raisetimeline.common.validation.CodePointLength;
 import java.util.List;
 import org.springframework.web.multipart.MultipartFile;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 /**
  * 投稿の作成で送る値（API 設計書 4.4。multipart/form-data）。
  * 本文が空でよいのは画像があるときだけ（BR-11）。この確かめと、画像の枚数・形式・大きさの確かめはサービス層で行う。
@@ -12,7 +14,10 @@ import org.springframework.web.multipart.MultipartFile;
  * @param images 画像（0〜4 枚。送った順が並び順）。送られなければ null
  */
 public record CreatePostRequest(
-        @CodePointLength(max = Post.BODY_MAX_LENGTH, message = "BODY_TOO_LONG") String body, List<MultipartFile> images) {
+        @Schema(description = "本文（0〜280 文字）", maxLength = Post.BODY_MAX_LENGTH)
+                @CodePointLength(max = Post.BODY_MAX_LENGTH, message = "BODY_TOO_LONG")
+                String body,
+        @Schema(description = "画像（0〜4 枚、1 枚 5MB まで。JPEG・PNG・WebP・GIF。送った順が並び順）") List<MultipartFile> images) {
 
     /** 送られた画像（空のファイル欄は除く）。 */
     public List<MultipartFile> imageFiles() {
