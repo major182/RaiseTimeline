@@ -24,6 +24,8 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6
       # テストは Testcontainers で PostgreSQL を起動する（ubuntu-latest には Docker が入っている）
       - run: ./gradlew check
+      # テストが書き出した API 仕様書が、コミットされたものと同じか（API を変えたら openapi.yaml もコミットする）
+      - run: git diff --exit-code -- ../docs/api/openapi.yaml
 
   frontend:
     runs-on: ubuntu-latest

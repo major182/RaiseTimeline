@@ -50,6 +50,10 @@ server:
 springdoc:
   api-docs:
     enabled: false
+  # 書き出す API 仕様書（docs/api/openapi.yaml）の並びを毎回同じにする
+  writer-with-order-by-keys: true
+  # 応答の形式を */* ではなく JSON と書く
+  default-produces-media-type: application/json
   swagger-ui:
     enabled: false
 
