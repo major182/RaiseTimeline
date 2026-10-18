@@ -92,3 +92,46 @@ BEGIN
         (sato_recent, suzuki, 'どんなお店か教えてください。', now() - interval '8 hours', now() - interval '8 hours');
 END
 $$;
+
+-- 返信とメンション（BR-37、BR-60）。上のテストデータを入れた後に足したので、別に入れる。
+-- 返信がまだ 1 件もなければ入れる（テストデータの利用者がいないときは何もしない）。
+DO $$
+DECLARE
+    sato BIGINT;
+    suzuki BIGINT;
+    tanaka BIGINT;
+    cafe_post BIGINT;
+    cafe_comment BIGINT;
+    hiking_comment BIGINT;
+BEGIN
+    IF EXISTS (SELECT 1 FROM comments WHERE parent_id IS NOT NULL) THEN
+        RETURN;
+    END IF;
+    SELECT id INTO sato FROM users WHERE lower(username) = 'sato_hana';
+    SELECT id INTO suzuki FROM users WHERE lower(username) = 'suzuki_ken';
+    SELECT id INTO tanaka FROM users WHERE lower(username) = 'tanaka_yu';
+    SELECT id INTO cafe_post FROM posts WHERE user_id = sato AND body LIKE '駅前に新しいカフェ%';
+    SELECT id INTO cafe_comment FROM comments WHERE post_id = cafe_post AND user_id = suzuki;
+    SELECT c.id INTO hiking_comment FROM comments c JOIN posts p ON p.id = c.post_id
+    WHERE p.user_id = suzuki AND p.body LIKE '今朝は高尾山%' AND c.user_id = tanaka;
+    IF sato IS NULL OR suzuki IS NULL OR tanaka IS NULL OR cafe_comment IS NULL OR hiking_comment IS NULL THEN
+        RETURN;
+    END IF;
+
+    -- 佐藤の投稿への鈴木のコメントに、佐藤が返信し、鈴木が返信に返信する（同じ段に並ぶ）
+    INSERT INTO comments (post_id, user_id, parent_id, body, created_at, updated_at) VALUES
+        (cafe_post, sato, cafe_comment, '落ち着いた雰囲気のお店でした。今度一緒に行きましょう！',
+         now() - interval '7 hours 30 minutes', now() - interval '7 hours 30 minutes'),
+        (cafe_post, suzuki, cafe_comment, '@sato_hana ぜひ！ @tanaka_yu さんも誘いましょう。',
+         now() - interval '7 hours', now() - interval '7 hours');
+    -- 鈴木の投稿への田中のコメントに、鈴木が返信する
+    INSERT INTO comments (post_id, user_id, parent_id, body, created_at, updated_at)
+    SELECT p.id, suzuki, hiking_comment, '@tanaka_yu ありがとうございます。写真はまた今度！',
+           now() - interval '3 hours 45 minutes', now() - interval '3 hours 45 minutes'
+    FROM comments c JOIN posts p ON p.id = c.post_id WHERE c.id = hiking_comment;
+    -- 投稿の本文のメンション
+    INSERT INTO posts (user_id, body, created_at, updated_at)
+    VALUES (tanaka, '@suzuki_ken さんの山の写真、楽しみにしています。メールは tanaka@example.com ではリンクになりません。',
+            now() - interval '20 minutes', now() - interval '20 minutes');
+END
+$$;

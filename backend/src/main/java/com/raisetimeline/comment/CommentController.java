@@ -41,8 +41,22 @@ public class CommentController {
         return commentService.list(postId, cursor, me.id());
     }
 
-    /** コメントする（F-CM-01）。 */
-    @Operation(summary = "コメントする", description = "本文は 1〜280 文字（BR-30）")
+    /** 返信の一覧（F-CM-06）。古い順。 */
+    @Operation(summary = "返信の一覧", description = "古い順。20 件ずつ。続きは nextCursor を cursor に付けて呼ぶ（API 設計書 2.5）")
+    @ApiErrors({ErrorCode.VALIDATION_FAILED, ErrorCode.NOT_FOUND})
+    @GetMapping("/api/comments/{commentId}/replies")
+    CursorPage<CommentResponse> listReplies(
+            @AuthenticationPrincipal AuthenticatedUser me,
+            @PathVariable long commentId,
+            @RequestParam(required = false) String cursor) {
+        return commentService.listReplies(commentId, cursor, me.id());
+    }
+
+    /** コメント・返信する（F-CM-01、F-CM-05）。 */
+    @Operation(
+            summary = "コメント・返信する",
+            description = "本文は 1〜280 文字（BR-30）。返信なら parentId に返信先のコメントの ID。"
+                    + "返信先がない・別の投稿のコメントなら 404（BR-37）")
     @ApiResponse(responseCode = "201", description = "コメントした", useReturnTypeSchema = true)
     @ApiErrors({ErrorCode.VALIDATION_FAILED, ErrorCode.NOT_FOUND})
     @PostMapping("/api/posts/{postId}/comments")
@@ -54,8 +68,8 @@ public class CommentController {
         return ResponseEntity.created(URI.create("/api/comments/" + comment.id())).body(comment);
     }
 
-    /** コメントを消す（F-CM-04）。 */
-    @Operation(summary = "コメントを消す", description = "消せるのはコメントした本人と、投稿した本人（BR-35）")
+    /** コメント・返信を消す（F-CM-04）。 */
+    @Operation(summary = "コメント・返信を消す", description = "消せるのは書いた本人と、投稿した本人（BR-35）。コメントを消すと返信も消える（BR-38）")
     @ApiResponse(responseCode = "204", description = "消した")
     @ApiErrors({ErrorCode.FORBIDDEN, ErrorCode.NOT_FOUND})
     @DeleteMapping("/api/comments/{commentId}")

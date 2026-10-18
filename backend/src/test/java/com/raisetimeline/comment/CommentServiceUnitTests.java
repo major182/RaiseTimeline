@@ -3,6 +3,7 @@ package com.raisetimeline.comment;
 import static com.raisetimeline.ApiExceptions.codeOf;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -15,6 +16,7 @@ import com.raisetimeline.post.TestPosts;
 import com.raisetimeline.user.UserSummaries;
 import java.util.List;
 import java.util.Optional;
+import org.mockito.ArgumentCaptor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -26,7 +28,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 import tools.jackson.databind.json.JsonMapper;
 
-/** コメントの業務ルールの単体テスト（BR-35）。DB は偽物にする。 */
+/** コメントの業務ルールの単体テスト（BR-35、BR-37）。DB は偽物にする。 */
 @ExtendWith(MockitoExtension.class)
 class CommentServiceUnitTests {
 
@@ -55,6 +57,78 @@ class CommentServiceUnitTests {
         Comment comment = new Comment(POST_ID, userId, "コメント");
         ReflectionTestUtils.setField(comment, "id", COMMENT_ID);
         return comment;
+    }
+
+    private static Comment reply(long id, long postId, long parentId) {
+        Comment reply = new Comment(postId, OTHER, parentId, "返信");
+        ReflectionTestUtils.setField(reply, "id", id);
+        return reply;
+    }
+
+    /** 返信を保存したときの返信先（parent_id）。 */
+    private Long savedParentId(long parentId) {
+        when(posts.findById(POST_ID)).thenReturn(Optional.of(TestPosts.entity(POST_ID, OTHER, "本文")));
+        when(comments.save(any())).thenAnswer(invocation -> {
+            Comment saved = invocation.getArgument(0);
+            ReflectionTestUtils.setField(saved, "id", 40L); // DB が ID を振るのと同じにする
+            return saved;
+        });
+        service.create(ME, POST_ID, new CreateCommentRequest("返信", parentId));
+        ArgumentCaptor<Comment> saved = ArgumentCaptor.forClass(Comment.class);
+        verify(comments).save(saved.capture());
+        return saved.getValue().getParentId();
+    }
+
+    @Test
+    @DisplayName("UT-CM-03 コメントへの返信は、そのコメントを返信先にする")
+    void コメントへの返信() {
+        when(comments.findById(COMMENT_ID)).thenReturn(Optional.of(comment(OTHER)));
+
+        assertThat(savedParentId(COMMENT_ID)).isEqualTo(COMMENT_ID);
+    }
+
+    @Test
+    @DisplayName("UT-CM-03 返信への返信は、元のコメントを返信先にする（一段だけ）")
+    void 返信への返信() {
+        when(comments.findById(30L)).thenReturn(Optional.of(reply(30L, POST_ID, COMMENT_ID)));
+
+        assertThat(savedParentId(30L)).isEqualTo(COMMENT_ID);
+    }
+
+    @Test
+    @DisplayName("UT-CM-03 返信先がない・別の投稿のコメントなら NOT_FOUND")
+    void 返信先が正しくない() {
+        when(posts.findById(POST_ID)).thenReturn(Optional.of(TestPosts.entity(POST_ID, OTHER, "本文")));
+        when(comments.findById(30L)).thenReturn(Optional.empty());
+        when(comments.findById(31L)).thenReturn(Optional.of(reply(31L, POST_ID + 1, 99L)));
+
+        assertThat(codeOf(() -> service.create(ME, POST_ID, new CreateCommentRequest("x", 30L))))
+                .isEqualTo(ErrorCode.NOT_FOUND);
+        assertThat(codeOf(() -> service.create(ME, POST_ID, new CreateCommentRequest("x", 31L))))
+                .isEqualTo(ErrorCode.NOT_FOUND);
+        verify(comments, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("UT-CM-03 ないコメントの返信の一覧は NOT_FOUND")
+    void ないコメントの返信の一覧() {
+        when(comments.findById(COMMENT_ID)).thenReturn(Optional.empty());
+
+        assertThat(codeOf(() -> service.listReplies(COMMENT_ID, null, ME))).isEqualTo(ErrorCode.NOT_FOUND);
+    }
+
+    @Test
+    @DisplayName("UT-CM-03 返信だけの一覧では、返信の数を数えない（返信には返信がつかない）")
+    void 返信の一覧では返信の数を数えない() {
+        when(comments.findById(COMMENT_ID)).thenReturn(Optional.of(comment(OTHER)));
+        when(posts.findById(POST_ID)).thenReturn(Optional.of(TestPosts.entity(POST_ID, OTHER, "本文")));
+        when(comments.findReplies(eq(COMMENT_ID), any())).thenReturn(List.of(reply(30L, POST_ID, COMMENT_ID)));
+
+        List<CommentResponse> items = service.listReplies(COMMENT_ID, null, ME).items();
+
+        assertThat(items).extracting(CommentResponse::parentId).containsExactly(COMMENT_ID);
+        assertThat(items).extracting(CommentResponse::replyCount).containsExactly(0L);
+        verify(comments, never()).countRepliesByParentIds(anyCollection());
     }
 
     /**

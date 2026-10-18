@@ -10,7 +10,7 @@ import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import java.time.Instant;
 
-/** コメント（DB 設計書 4.4）。 */
+/** コメントと、コメントへの返信（DB 設計書 4.4・D-10）。 */
 @Entity
 @Table(name = "comments")
 public class Comment {
@@ -28,6 +28,10 @@ public class Comment {
     @Column(name = "user_id", nullable = false, updatable = false)
     private long userId;
 
+    /** 返信先のコメント。返信でなければ null。返信先は返信ではないコメントだけ（BR-37）。 */
+    @Column(name = "parent_id", updatable = false)
+    private Long parentId;
+
     @Column(nullable = false)
     private String body;
 
@@ -42,8 +46,13 @@ public class Comment {
     }
 
     Comment(long postId, long userId, String body) {
+        this(postId, userId, null, body);
+    }
+
+    Comment(long postId, long userId, Long parentId, String body) {
         this.postId = postId;
         this.userId = userId;
+        this.parentId = parentId;
         this.body = body;
     }
 
@@ -68,6 +77,15 @@ public class Comment {
 
     public long getUserId() {
         return userId;
+    }
+
+    public Long getParentId() {
+        return parentId;
+    }
+
+    /** 返信なら true。 */
+    public boolean isReply() {
+        return parentId != null;
     }
 
     public String getBody() {
