@@ -95,6 +95,22 @@ describe('ログアウト（F-AU-03）', () => {
     expect(fetchMock.mock.calls.some((c) => c[0] === '/api/auth/logout')).toBe(true)
   })
 
+  it('ログアウトしてからログインし直すと、設定ではなくホームを開く', async () => {
+    const { user } = openSettings({
+      'POST /api/auth/logout': noContent(),
+      'POST /api/auth/login': authResponse(TEST_ME),
+    })
+    const dialog = await openLogoutDialog(user)
+    await user.click(dialog.querySelector('button.MuiButton-contained')!)
+    await screen.findByRole('heading', { name: 'ログイン' })
+
+    await user.type(screen.getByLabelText('メールアドレス'), 'other@example.com')
+    await user.type(screen.getByLabelText('パスワード'), 'pass1234')
+    await user.click(screen.getByRole('button', { name: 'ログイン' }))
+
+    expect(await screen.findByRole('heading', { name: 'ホーム' })).toBeInTheDocument()
+  })
+
   it('確認でキャンセルすれば、ログアウトしない', async () => {
     const { user, fetchMock } = openSettings()
     await openLogoutDialog(user)
