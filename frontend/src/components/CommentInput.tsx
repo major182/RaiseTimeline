@@ -1,5 +1,4 @@
 import { Box, Button, Stack } from '@mui/material'
-import { useEffect, useRef } from 'react'
 import { BODY_MAX_LENGTH, countChars } from '../postLength'
 import { CharCounter } from './CharCounter'
 import { MentionTextField } from './MentionTextField'
@@ -41,17 +40,6 @@ export function CommentInput({
   autoFocus,
 }: Props) {
   const over = countChars(value) > BODY_MAX_LENGTH
-  const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null)
-
-  useEffect(() => {
-    const input = inputRef.current
-    if (!autoFocus || !input) return
-    input.focus()
-    input.setSelectionRange(input.value.length, input.value.length)
-    // 開いたときだけ行う
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
   return (
     <Box
       component="form"
@@ -68,7 +56,13 @@ export function CommentInput({
         placeholder={placeholder}
         multiline
         fullWidth
-        inputRef={inputRef}
+        autoFocus={autoFocus}
+        // 開いたときは、入れておいた @ユーザー名 の後ろから打てるよう、カーソルを最後に置く
+        onFocus={
+          autoFocus
+            ? (e) => e.target.setSelectionRange(e.target.value.length, e.target.value.length)
+            : undefined
+        }
         variant="standard"
         error={Boolean(error)}
         helperText={error}

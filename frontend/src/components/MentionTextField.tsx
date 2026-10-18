@@ -9,7 +9,7 @@ import {
   type TextFieldProps,
 } from '@mui/material'
 import { useForkRef } from '@mui/material/utils'
-import { useQuery } from '@tanstack/react-query'
+import { skipToken, useQuery } from '@tanstack/react-query'
 import { useEffect, useState, type KeyboardEvent, type Ref } from 'react'
 import { searchUsers } from '../api/users'
 import { findMentionQuery, insertMention } from '../mention'
@@ -31,7 +31,15 @@ type Props = Omit<TextFieldProps, 'value' | 'onChange' | 'inputRef'> & {
  * メンションの候補（画面設計書 4.5 MC-01、F-MN-02）を出す入力欄。ほかは TextField と同じ。
  * カーソルの直前に `@…` を打つと、利用者の検索で候補を出し、選ぶと `@ユーザー名 ` を入れる。
  */
-export function MentionTextField({ value, onValueChange, inputRef, onKeyDown, ...rest }: Props) {
+export function MentionTextField({
+  value,
+  onValueChange,
+  inputRef,
+  onKeyDown,
+  onFocus,
+  onBlur,
+  ...rest
+}: Props) {
   // 候補の位置合わせに描画で使うので、ref ではなく state で持つ
   const [input, setInput] = useState<HTMLInputElement | HTMLTextAreaElement | null>(null)
   const handleRef = useForkRef(inputRef, setInput)
@@ -53,9 +61,9 @@ export function MentionTextField({ value, onValueChange, inputRef, onKeyDown, ..
   }, [q])
 
   const search = useQuery({
-    queryKey: QUERY_KEYS.search(debounced ?? ''),
-    queryFn: () => searchUsers(debounced!, null),
-    enabled: debounced !== null,
+    queryKey: QUERY_KEYS.mentionCandidates(debounced ?? ''),
+    // 打ち終えるまで（検索語がないうち）は通信しない
+    queryFn: debounced === null ? skipToken : () => searchUsers(debounced, null),
     // 候補が取れなくても、メッセージは出さずに候補を閉じる（入力の邪魔をしない）
     retry: false,
   })
@@ -113,8 +121,14 @@ export function MentionTextField({ value, onValueChange, inputRef, onKeyDown, ..
         }}
         onSelect={readCaret}
         onKeyDown={handleKeyDown}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
+        onFocus={(e) => {
+          setFocused(true)
+          onFocus?.(e)
+        }}
+        onBlur={(e) => {
+          setFocused(false)
+          onBlur?.(e)
+        }}
       />
       <Popper
         open={open}

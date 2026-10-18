@@ -19,6 +19,8 @@ export const QUERY_KEYS = {
   following: (userId: number) => ['users', 'following', userId] as const,
   followers: (userId: number) => ['users', 'followers', userId] as const,
   search: (q: string) => ['users', 'search', q] as const,
+  /** メンションの候補。検索画面（search）とは形が違う（1 ページだけ）ので、名前を分ける。 */
+  mentionCandidates: (q: string) => ['users', 'mention-candidates', q] as const,
 }
 
 /** オブジェクトの中の配列 items・highlights と、一覧の pages をたどって、要素を書き換える。 */
