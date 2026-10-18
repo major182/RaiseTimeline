@@ -237,7 +237,7 @@ paths:
       - 認証
   /api/comments/{commentId}:
     delete:
-      description: 消せるのはコメントした本人と、投稿した本人（BR-35）
+      description: 消せるのは書いた本人と、投稿した本人（BR-35）。コメントを消すと返信も消える（BR-38）
       operationId: delete_1
       parameters:
       - in: path
@@ -273,7 +273,57 @@ paths:
               schema:
                 $ref: "#/components/schemas/Problem"
           description: '`INTERNAL_ERROR`：エラーが発生しました。時間をおいてもう一度お試しください'
-      summary: コメントを消す
+      summary: コメント・返信を消す
+      tags:
+      - コメント
+  /api/comments/{commentId}/replies:
+    get:
+      description: 古い順。20 件ずつ。続きは nextCursor を cursor に付けて呼ぶ（API 設計書 2.5）
+      operationId: listReplies
+      parameters:
+      - in: path
+        name: commentId
+        required: true
+        schema:
+          type: integer
+          format: int64
+      - in: query
+        name: cursor
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CursorPageCommentResponse"
+          description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`VALIDATION_FAILED`：入力内容を確認してください'
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`UNAUTHENTICATED`：ログインの有効期限が切れました。もう一度ログインしてください'
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`NOT_FOUND`：見つかりません'
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: '`INTERNAL_ERROR`：エラーが発生しました。時間をおいてもう一度お試しください'
+      summary: 返信の一覧
       tags:
       - コメント
   /api/me/avatar:
@@ -643,7 +693,8 @@ paths:
       tags:
       - コメント
     post:
-      description: 本文は 1〜280 文字（BR-30）
+      description: 本文は 1〜280 文字（BR-30）。返信なら parentId に返信先のコメントの ID。返信先がない・別の投稿のコメントなら
+        404（BR-37）
       operationId: create_1
       parameters:
       - in: path
@@ -689,7 +740,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Problem"
           description: '`INTERNAL_ERROR`：エラーが発生しました。時間をおいてもう一度お試しください'
-      summary: コメントする
+      summary: コメント・返信する
       tags:
       - コメント
   /api/posts/{postId}/like:
@@ -1321,20 +1372,30 @@ components:
           format: date-time
         deletable:
           type: boolean
-          description: コメントした本人か投稿した本人なら true（BR-35）。true のときだけ画面は削除のメニューを出す
+          description: 書いた本人か投稿した本人なら true（BR-35）。true のときだけ画面は削除のメニューを出す
         id:
           type: integer
           format: int64
+        parentId:
+          type: integer
+          format: int64
+          description: 返信先のコメントの ID。返信でなければ null（BR-37）
         postId:
           type: integer
           format: int64
+        replyCount:
+          type: integer
+          format: int64
+          description: 返信の数。返信では 0
       required:
       - author
       - body
       - createdAt
       - deletable
       - id
+      - parentId
       - postId
+      - replyCount
     CreateCommentRequest:
       type: object
       properties:
@@ -1342,6 +1403,10 @@ components:
           type: string
           maxLength: 280
           minLength: 1
+        parentId:
+          type: integer
+          format: int64
+          description: 返信先のコメントの ID。返信先が返信なら、その返信先への返信になる（BR-37）。コメントなら送らない
       required:
       - body
     CreatePostRequest:

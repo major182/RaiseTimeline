@@ -87,6 +87,7 @@ class SecurityConfigTests {
         "PATCH, /api/posts/1",
         "DELETE, /api/posts/1",
         "GET, /api/posts/1/comments",
+        "GET, /api/comments/1/replies",
         "POST, /api/posts/1/comments",
         "DELETE, /api/comments/1",
         "PUT, /api/posts/1/like",
