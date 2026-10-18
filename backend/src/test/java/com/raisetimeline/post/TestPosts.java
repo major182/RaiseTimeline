@@ -8,6 +8,7 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.ResultActions;
 
 /** テスト用の投稿を作る道具。 */
@@ -40,5 +41,13 @@ public final class TestPosts {
                 userId,
                 body,
                 Timestamp.from(createdAt));
+    }
+
+    /** DB を使わない単体テスト用に、ID と投稿日時を決めた投稿のエンティティを作る（ID は本来 DB が決める）。 */
+    public static Post entity(long id, long userId, String body) {
+        Post post = new Post(userId, body);
+        ReflectionTestUtils.setField(post, "id", id);
+        ReflectionTestUtils.setField(post, "createdAt", Instant.parse("2026-10-01T00:00:00Z"));
+        return post;
     }
 }
