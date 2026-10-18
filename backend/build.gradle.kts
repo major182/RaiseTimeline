@@ -73,17 +73,17 @@ tasks.jacocoTestReport {
     }
 }
 
-// しきい値は 2026-10-18 の値（命令 94%・分岐 81%）を少し下回る線。下がったら check を失敗させる
+// しきい値は 2026-10-18 の値（命令 95%・分岐 84%。単体テストの追加後）を少し下回る線。下がったら check を失敗させる
 tasks.jacocoTestCoverageVerification {
     violationRules {
         rule {
             limit {
                 counter = "INSTRUCTION"
-                minimum = "0.90".toBigDecimal()
+                minimum = "0.92".toBigDecimal()
             }
             limit {
                 counter = "BRANCH"
-                minimum = "0.75".toBigDecimal()
+                minimum = "0.80".toBigDecimal()
             }
         }
     }

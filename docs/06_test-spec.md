@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |---|---|
 | 文書番号 | 06 |
-| 版数 | 0.2 |
+| 版数 | 0.3 |
 | 作成日 | 2026-10-18 |
 | 作成者 | major182 |
 | 前提となる文書 | [01 要件定義書](01_requirements.md)、[03 DB 設計書](03_db-design.md)、[04 画面設計書](04_screen-design.md)、[05 API 設計書](05_api-design.md) |
@@ -66,12 +66,12 @@
 
 | ID | 観点 | 技法 | 要件 | 場所 |
 |---|---|---|---|---|
-| UT-AU-01 | ユーザー名：3・4・15・16 文字、使えない文字（記号・全角）、大文字・小文字だけ違う既存の名前 | 境界値・同値分割 | BR-02 | frontend `auth/validation`、backend の検証 |
-| UT-AU-02 | パスワード：7・8・72・73 文字、英字だけ・数字だけ、確認用と不一致 | 境界値・同値分割 | BR-05、BR-09 | 同上 |
+| UT-AU-01 | ユーザー名：3・4・15・16 文字、使えない文字（記号・全角）。メールアドレス・ユーザー名の重複（同時の登録で DB の制約に当たった場合を含む） | 境界値・同値分割 | BR-02、BR-04 | frontend `auth/validation`、backend `RequestValidationTests`・`AuthServiceUnitTests` |
+| UT-AU-02 | パスワード：7・8・72・73 文字、英字だけ・数字だけ、確認用と不一致（登録・変更） | 境界値・同値分割 | BR-05、BR-09 | frontend `auth/validation`、backend `RequestValidationTests` |
 | UT-AU-03 | 表示名：0・1・50・51 文字 | 境界値 | BR-03 | 同上 |
-| UT-AU-04 | ログインの失敗回数：4 回目まではログインできる・5 回目で止まる・15 分たつと戻る・成功で回数が 0 に戻る | 境界値・分岐網羅 | BR-08 | `AuthServiceUnitTests` |
-| UT-AU-05 | リフレッシュトークン：有効なら新しいトークンに交換・期限切れは拒否・無効にした後のトークンが来たらその利用者の全トークンを無効化 | 分岐網羅・状態遷移 | BR-07 | `RefreshTokenServiceUnitTests` |
-| UT-AU-06 | パスワードの変更：今のパスワードが違う・正しい（今の端末以外のトークンを無効化） | 分岐網羅 | BR-05 | `AuthServiceUnitTests` |
+| UT-AU-04 | ログインの失敗回数：4 回目までは LOGIN_FAILED・5 回目で LOGIN_LOCKED・止めている間は照合しない・15 分ちょうどで戻る・成功で回数が 0 に戻る・未登録のメールアドレスも同じ LOGIN_FAILED | 境界値・分岐網羅 | BR-08、BR-09 | `AuthServiceUnitTests`、`UserUnitTests` |
+| UT-AU-05 | リフレッシュトークン：ない・知らない・期限切れ（期限ちょうどを含む）は拒否、有効なら新しいトークンに交換、取り直しで使い終わったトークンが来たら全トークンを無効化、ログアウト後のトークンは拒否だけ | 分岐網羅・状態遷移 | BR-07 | `RefreshTokenServiceUnitTests` |
+| UT-AU-06 | パスワードの変更：今のパスワードが違う・正しい、今の端末以外のトークンを無効化（今の端末のトークンがなければ全部）、利用者が消えていたら UNAUTHENTICATED | 分岐網羅 | BR-05 | `AuthServiceUnitTests`、`RefreshTokenServiceUnitTests` |
 | UT-AU-07 | 画面のセッション：期限切れの 401 で取り直しを 1 回だけ呼ぶ・同時に呼ばれてもまとめる・取り直しに失敗したらログイン画面へ | 状態遷移・エラー推測 | BR-07 | frontend `api/client`、`auth/session` |
 | IT-AU-01 | 登録：成功（201・Cookie）、形式の誤り（400・`errors`）、メールアドレス／ユーザー名の重複（409） | 同値分割 | BR-01〜05、BR-09 | `SignupTests` |
 | IT-AU-02 | ログイン：成功、メールアドレスかパスワードが違う（同じ `LOGIN_FAILED`）、一時停止中（`LOGIN_LOCKED`） | 同値分割 | BR-04、BR-08、BR-09 | `LoginTests` |
@@ -83,24 +83,24 @@
 
 | ID | 観点 | 技法 | 要件 | 場所 |
 |---|---|---|---|---|
-| UT-US-01 | プロフィールの編集：送った項目だけ変わる・自分の今のユーザー名は重複にしない・他人の名前（大文字違い含む）は重複 | 分岐網羅・同値分割 | BR-02、BR-03 | `UserServiceUnitTests` |
-| UT-US-02 | 自己紹介：160・161 文字 | 境界値 | BR-25 | 同上、frontend `pages/ProfileEdit` |
-| UT-US-03 | 検索語：0・1・50・51 文字 | 境界値 | API 05 2.4 | `UserServiceUnitTests` |
-| UT-US-04 | おすすめ：自分・フォロー済みを除く、最大 5 人 | 境界値・分岐網羅 | 4.1 候補 | 同上 |
+| UT-US-01 | プロフィールの編集：送った項目だけ変わる・ユーザー名を送らなければ重複を確かめない・他人が使っている名前は USERNAME_TAKEN（同時の変更を含む） | 分岐網羅・同値分割 | BR-02、BR-03 | `UserServiceUnitTests`、`UserUnitTests` |
+| UT-US-02 | 自己紹介：160・161 文字。アイコン：ファイルがない（REQUIRED）、変えたら前のファイルを消す（前がなければ消さない） | 境界値・分岐網羅 | BR-24、BR-25 | `RequestValidationTests`、`UserServiceUnitTests`、frontend `pages/ProfileEdit` |
+| UT-US-03 | 検索語：空・空白だけ・1・50・51 文字（絵文字は 1 文字）。`%`・`_`・`\` はただの文字として探す | 境界値・エラー推測 | API 05 2.4 | `UserServiceUnitTests` |
+| UT-US-04 | おすすめ：フォロー中の人がフォローしている人で 5 人そろえばそのまま、足りなければ選んだ人を除いて最近登録した人で埋める | 境界値・分岐網羅 | 4.1 候補 | `UserServiceUnitTests` |
 | IT-US-01 | プロフィールの取得：ユーザー名（大文字違い）・ID・いない利用者（404）。他人のメールアドレスを返さない | 同値分割 | BR-02 | `ProfileTests`、`UserSummaryTests` |
 | IT-US-02 | アイコンの変更：画像あり・`file` なし（400）・形式違い（415）・5MB 超（413）、古いファイルが消える | 同値分割 | BR-24 | `AvatarTests` |
-| IT-US-03 | 検索・おすすめ・プロフィールの編集の API | 同値分割 | BR-02、BR-03 | `UserSearchTests`、`RecommendationTests`、`UpdateProfileTests` |
+| IT-US-03 | 検索・おすすめ（自分・フォロー済みを除く）・プロフィールの編集の API | 同値分割 | BR-02、BR-03 | `UserSearchTests`、`RecommendationTests`、`UpdateProfileTests` |
 
 ### 4.3 投稿・画像（F-PO）
 
 | ID | 観点 | 技法 | 要件 | 場所 |
 |---|---|---|---|---|
-| UT-PO-01 | 本文の文字数：0・1・280・281 文字。絵文字は 1 文字、組み合わせの絵文字は複数文字 | 境界値・エラー推測 | BR-10 | backend `CodePointLengthValidator`、frontend `postLength` |
-| UT-PO-02 | 本文と画像の組み合わせ：本文あり／なし × 画像あり／なし（両方なしだけ `POST_EMPTY`） | デシジョンテーブル | BR-11 | `PostServiceUnitTests` |
+| UT-PO-01 | 本文の文字数：0・1・280・281 文字。絵文字は 1 文字、組み合わせの絵文字は複数文字 | 境界値・エラー推測 | BR-10 | backend `RequestValidationTests`・`CodePointLengthValidatorTests`、frontend `postLength` |
+| UT-PO-02 | 本文と画像の組み合わせ：本文あり／なし（空白だけ・送られないを含む）× 画像あり／なし（両方なしだけ `POST_EMPTY`）。編集で本文を空にできるのは画像があるときだけ | デシジョンテーブル | BR-11、BR-15 | `PostServiceUnitTests` |
 | UT-PO-03 | 画像の枚数：0・4・5 枚 | 境界値 | BR-20 | 同上 |
 | UT-PO-04 | 画像の中身の判定：JPEG・PNG・WebP・GIF、拡張子だけ偽った別の形式、壊れたファイル | 同値分割・エラー推測 | BR-21 | `ImageInspectorTests` |
-| UT-PO-05 | 編集・削除の権限：本人／他人 | 分岐網羅 | BR-12、NF-SE-04 | `PostServiceUnitTests` |
-| UT-PO-06 | 保存の失敗：DB の保存に失敗したら保存した画像を消す | 分岐網羅・エラー推測 | API 05 4.4 | 同上 |
+| UT-PO-05 | 編集・削除の権限：本人／他人／ない投稿。削除では画像のファイルを DB の確定後に消すよう頼む | 分岐網羅 | BR-12、BR-13、NF-SE-04 | `PostServiceUnitTests` |
+| UT-PO-06 | 画像が 1 枚でも正しくなければ、投稿も画像も保存しない | 分岐網羅・エラー推測 | API 05 4.4 | `PostServiceUnitTests` |
 | UT-PO-07 | 画面での画像の縮小：長辺が 2048px を超える・ちょうど・下回る | 境界値 | BR-23 | frontend `imageAttach` |
 | IT-PO-01 | 投稿・詳細・編集・削除の権限：本人／他人／未ログイン／存在しない投稿 → 成功／403／401／404 | デシジョンテーブル | BR-12、NF-SE-04 | `CreatePostTests`、`GetPostTests`、`UpdatePostTests`、`DeletePostTests` |
 | IT-PO-02 | 削除でコメント・いいね・画像も消える | 同値分割 | BR-13 | `DeletePostTests` |
@@ -111,13 +111,13 @@
 
 | ID | 観点 | 技法 | 要件 | 場所 |
 |---|---|---|---|---|
-| UT-TL-01 | 留守中のハイライト：前回から 6 時間未満／ちょうど／超え、初めて開く | 境界値・分岐網羅 | BR-52 | `TimelineServiceUnitTests` |
-| UT-TL-02 | ハイライトの選び方：反応 0 件は出さない・最大 3 件・自分の投稿は除く・カーソルありでは判定しない | 境界値・分岐網羅 | BR-52、BR-52-1 | 同上 |
-| UT-TL-03 | いいね経由の文言：1 人／2 人以上（「ほか N 人」） | 境界値 | BR-50-3 | 同上、frontend `PostCard` |
+| UT-TL-01 | 留守中のハイライト：初めて開く・前回から 6 時間未満・6 時間以上。ハイライトに出した投稿を下の一覧から除く | 境界値・分岐網羅 | BR-52、BR-52-1 | `TimelineServiceUnitTests` |
+| UT-TL-02 | 続きの読み込み（カーソルあり）では、ハイライトを判定せず時刻も記録しない・同じ基準の時刻で続きから読む。読み込みの間に消された投稿は飛ばす | 分岐網羅・エラー推測 | BR-52、BR-53 | `TimelineServiceUnitTests` |
+| UT-TL-03 | いいね経由の文言：1 人（ほか 0 人）／3 人（ほか 2 人）、最新のいいねの人の名前。自分の投稿には付けない | 境界値 | BR-50-3 | `TimelineServiceUnitTests`、frontend `PostCard` |
 | UT-CO-01 | カーソル：作って読むと元に戻る、壊れた文字列は 400 | 同値分割・エラー推測 | BR-53 | `CursorsTests`、frontend `api/cursor` |
 | IT-TL-01 | 一覧の件数：20 件ちょうどで `nextCursor` の有無、21 件で続きがある | 境界値 | BR-53 | `AllTimelineTests` |
 | IT-TL-02 | 読んでいる途中で投稿・いいねが増えても重複・抜けがない | エラー推測 | BR-53 | `FollowingStabilityTests` |
-| IT-TL-03 | フォロー中タブ：自分とフォロー中の人だけ・いいね経由の投稿は 1 回だけ・ハイライトに出た投稿は下に出ない | 同値分割 | BR-50-2、BR-50-3、BR-52-1 | `FollowingTimelineTests`、`LikedViaTimelineTests`、`HighlightTests` |
+| IT-TL-03 | フォロー中タブ：自分とフォロー中の人だけ・いいね経由の投稿は 1 回だけ・ハイライトの選び方（反応の多い順・反応 0 件は出さない・最大 3 件・自分の投稿は除く）・ハイライトに出た投稿は下に出ない | 同値分割・境界値 | BR-50-2、BR-50-3、BR-52、BR-52-1 | `FollowingTimelineTests`、`LikedViaTimelineTests`、`HighlightTests` |
 | IT-TL-04 | 利用者ごとの投稿一覧 | 同値分割 | F-TL | `UserPostsTimelineTests` |
 | IT-TL-05 | 画面：タブを覚える・続きを読み込む・引っ張って更新 | 状態遷移 | BR-51、BR-53、BR-54 | frontend `pages/Timeline` |
 
@@ -125,23 +125,23 @@
 
 | ID | 観点 | 技法 | 要件 | 場所 |
 |---|---|---|---|---|
-| UT-CM-01 | 削除の権限：コメントした本人 × 投稿した本人（どちらかなら削除できる。両方違えば 403） | デシジョンテーブル | BR-35 | `CommentServiceUnitTests` |
-| UT-CM-02 | 本文：0・1・280・281 文字 | 境界値 | BR-30 | 同上 |
+| UT-CM-01 | 削除の権限：コメントした本人 × 投稿した本人（どちらかなら削除できる。両方違えば 403）。一覧の `deletable` も同じ判定。ないコメント・ない投稿は 404 | デシジョンテーブル | BR-35 | `CommentServiceUnitTests` |
+| UT-CM-02 | 本文：0・1・280・281 文字 | 境界値 | BR-30 | `RequestValidationTests` |
 | IT-CM-01 | コメントの投稿・一覧（古い順）・削除の権限・数 | デシジョンテーブル | BR-30、BR-31、BR-35 | `CreateCommentTests`、`CommentListTests`、`DeleteCommentTests`、`CommentCountTests` |
 
 ### 4.6 いいね（F-LK）
 
 | ID | 観点 | 技法 | 要件 | 場所 |
 |---|---|---|---|---|
-| UT-LK-01 | いいねの状態遷移：未いいね → PUT → いいね済み → PUT（変わらない）→ DELETE → 未いいね → DELETE（変わらない） | 状態遷移 | BR-33、A-4 | `LikeServiceUnitTests` |
+| UT-LK-01 | いいね・取り消しは、重複を無視して追加・なくても消すだけで、操作のあとの状態（いいね済みか・数）を返す。ない投稿は 404 で DB を変えない | 同値分割 | BR-33、A-4 | `LikeServiceUnitTests` |
 | UT-LK-02 | 画面：押してすぐ表示を変え、失敗したら元に戻す | 状態遷移・エラー推測 | 画面 04 4.1 | frontend `LikeButton` |
-| IT-LK-01 | いいね・取り消し・数・いいねした人の一覧（新しい順）、自分の投稿にもできる | 同値分割 | BR-32〜34 | `LikeTests`、`LikeCountTests`、`LikerListTests` |
+| IT-LK-01 | いいね・取り消しを何度送っても結果が同じ（未いいね → いいね → いいね → 取り消し → 取り消し）・数・いいねした人の一覧（新しい順）、自分の投稿にもできる | 状態遷移・同値分割 | BR-32〜34、A-4 | `LikeTests`、`LikeCountTests`、`LikerListTests` |
 
 ### 4.7 フォロー（F-FL）
 
 | ID | 観点 | 技法 | 要件 | 場所 |
 |---|---|---|---|---|
-| UT-FL-01 | フォローの相手：自分（400）・他人・いない利用者（404）・フォロー済み（変わらない） | 同値分割・状態遷移 | BR-42、BR-43 | `FollowServiceUnitTests` |
+| UT-FL-01 | フォローの相手：自分（400。利用者を探しもしない）・他人・いない利用者（404）。解除はフォローしていなくてもエラーにしない | 同値分割 | BR-42、BR-43 | `FollowServiceUnitTests` |
 | IT-FL-01 | フォロー・解除・一覧（新しい順）・数 | 同値分割 | BR-42〜44 | `FollowTests`、`FollowListTests` |
 
 ### 4.8 共通・セキュリティ
@@ -163,8 +163,8 @@
 |---|---|---|
 | 計測の道具 | JaCoCo（`./gradlew test` のあとにレポートを作る） | Vitest のカバレッジ（`@vitest/coverage-v8`。`npm run test` で計測） |
 | 対象 | 単体テスト・結合テストを合わせた値 | 単体テスト・結合テストを合わせた値 |
-| 今の値（2026-10-18） | 命令 94%・分岐 81% | 命令 92%・分岐 85% |
-| しきい値（下回ると失敗） | 命令 90%・分岐 75% | 命令 90%・分岐 80% |
+| 今の値（2026-10-18） | 命令 95%・分岐 84%（単体テストの追加前は 94%・81%） | 命令 92%・分岐 85% |
+| しきい値（下回ると失敗） | 命令 92%・分岐 80% | 命令 90%・分岐 80% |
 | 設定の場所 | `backend/build.gradle.kts` の `jacocoTestCoverageVerification`（`check` で動く） | `frontend/vite.config.ts` の `coverage.thresholds` |
 | レポート | `backend/build/reports/jacoco/test/html/index.html` | `frontend/coverage/index.html`（Git に入れない） |
 | 下回ったとき | CI を失敗させる | 同左 |
@@ -190,3 +190,4 @@
 |---|---|---|
 | 0.1 | 2026-10-18 | 初版 |
 | 0.2 | 2026-10-18 | カバレッジの計測を導入し、今の値・しきい値・レポートの場所を追記（5 章） |
+| 0.3 | 2026-10-18 | backend の単体テストを追加し、観点表を実装に合わせて直した（入力チェックの境界値は RequestValidationTests に、SQL で決まる観点は結合テストに） |
