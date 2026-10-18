@@ -2,6 +2,7 @@ package com.raisetimeline.auth;
 
 import com.raisetimeline.common.error.ApiException;
 import com.raisetimeline.common.error.ErrorCode;
+import com.raisetimeline.common.logging.LogMarkers;
 import com.raisetimeline.config.AuthProperties;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -68,7 +69,12 @@ public class RefreshTokenService {
         }
         if (token.isRevoked()) {
             if (token.wasRotated()) {
-                LOG.warn("使い終わったリフレッシュトークンが使われました。利用者 {} のトークンをすべて無効にします", token.getUserId());
+                // 盗まれたトークンが使われた疑い。直ちに確かめるよう alert で残す（ログ設計書 5 章）
+                LOG.atError()
+                        .addMarker(LogMarkers.ALERT)
+                        .addKeyValue("usr.id", token.getUserId())
+                        .addKeyValue("evt.name", "refresh_token_reuse")
+                        .log("使い終わったリフレッシュトークンが使われました。利用者 {} のトークンをすべて無効にします", token.getUserId());
                 tokens.revokeAllByUserId(token.getUserId(), now, RevokeReason.REUSE_DETECTED);
             }
             throw new ApiException(ErrorCode.UNAUTHENTICATED);
@@ -86,6 +92,7 @@ public class RefreshTokenService {
         RefreshToken token = find(raw);
         if (token != null) {
             token.revoke(Instant.now(), RevokeReason.LOGOUT);
+            LOG.atInfo().addKeyValue("usr.id", token.getUserId()).addKeyValue("evt.name", "logout").log("ログアウトしました");
         }
     }
 

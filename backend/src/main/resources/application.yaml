@@ -40,8 +40,14 @@ app:
     s3-bucket: ${S3_BUCKET:}
     # 署名つき URL の期限（NF-SE-06）
     url-ttl: 1h
+  # ログに付ける環境の名前と版（Datadog の env・version。ログ設計書 2 章）。デプロイのときに環境変数で渡す
+  logging:
+    env: ${APP_ENV:local}
+    version: ${APP_VERSION:}
 
 server:
+  # ALB の後ろで動くため、X-Forwarded-For から利用者の IP を取る（ログの network.client.ip。ログ設計書 4 章）
+  forward-headers-strategy: native
   tomcat:
     # 上限を超えたアップロードでも、413 の応答を返せるよう本文を読み切る（既定の 2MB では接続が切られることがある）
     max-swallow-size: 25MB
@@ -62,3 +68,11 @@ management:
     web:
       exposure:
         include: health
+
+# ログ（ログ設計書）。1 行 1 件の JSON を標準出力に書く。Debug は出さない（Info 以上）
+logging:
+  structured:
+    format:
+      console: com.raisetimeline.common.logging.DatadogJsonFormatter
+  level:
+    root: INFO

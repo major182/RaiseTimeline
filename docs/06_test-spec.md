@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |---|---|
 | 文書番号 | 06 |
-| 版数 | 1.0 |
+| 版数 | 1.1 |
 | 作成日 | 2026-10-18 |
 | 作成者 | major182 |
 | 前提となる文書 | [01 要件定義書](01_requirements.md)、[03 DB 設計書](03_db-design.md)、[04 画面設計書](04_screen-design.md)、[05 API 設計書](05_api-design.md) |
@@ -159,13 +159,16 @@
 
 | ID | 観点 | 技法 | 要件 | 場所 |
 |---|---|---|---|---|
-| UT-CO-02 | 画像の保存（ローカル・S3）と署名つき URL | 分岐網羅 | NF-SE-06 | `LocalImageStorageTests`、`S3ImageStorageTests` |
+| UT-CO-02 | 画像の保存（ローカル・S3）と署名つき URL。保存先に書けなければ critical のログを出して例外を投げる | 分岐網羅 | NF-SE-06、ログ 07 5 章 | `LocalImageStorageTests`、`S3ImageStorageTests`、`ImageUploadsUnitTests` |
 | UT-CO-03 | CSP のヘッダーの組み立て | 同値分割 | NF-SE-05 | `ContentSecurityPolicyTests` |
+| UT-CO-04 | ログの JSON：印（ALERT・CRITICAL・NOTICE・ほか・なし）× レベル（ERROR・WARN・INFO・DEBUG）の `status`、印が複数なら重いほう、例外のあり／なし、MDC・key-value を入れ子にする、null・空は出さない、数・文字・真偽以外は文字にする、1 件が 1 行 | デシジョンテーブル・同値分割 | ログ 07 2・3 章 | `DatadogJsonFormatterTests` |
+| UT-CO-05 | リクエストの ID：あり（そのまま使う）・なし・空・改行や空白・記号・64／65 文字（作り直す）。アクセスログの属性、ヘルスチェックは出さない、例外でもログを出し MDC を消す。利用者の ID はログインしているときだけ | 境界値・同値分割・エラー推測 | ログ 07 4 章 | `RequestLoggingFilterTests` |
 | IT-CO-01 | 開発用の画像の URL：正しい署名／違う署名／期限切れ（404） | 同値分割 | NF-SE-06 | `MediaControllerTests` |
 | IT-CO-02 | 画面の URL への直接のアクセスで `index.html`、`/api/` などは除く | 同値分割 | API 05 5.2 | `SpaConfigTests` |
 | IT-CO-03 | Swagger UI は開発だけ、API 仕様書の書き出し | 同値分割 | API 05 5.1 | `SwaggerUiTests`、`OpenApiSpecExportTests` |
 | IT-CO-04 | エラーの形（ProblemDetail と `code`） | 同値分割 | API 05 2.4 | 各 IT |
 | IT-CO-06 | 一覧の SQL の数：全体タブ・フォロー中タブ・利用者ごとの投稿一覧・コメントの一覧・返信の一覧で、1 件と 20 件（作者・画像・いいね・コメント・返信つき）の SQL の数が同じ（N+1 にしない）。JPA と JdbcTemplate の両方を数える | 境界値 | NF-PE-02 | `QueryCountTests`（`SqlCounter`） |
+| IT-CO-07 | 構造化ログ：ログインの成功（info）・失敗（notice、理由と利用者の ID。登録のないメールアドレスは利用者なし）・使い回しの検知（alert）・500（error、リクエストの ID・利用者の ID・例外）とそのアクセスログ・パスワードの変更（notice）。出力にパスワード・トークン・メールアドレスが出ない | 同値分割・エラー推測 | ログ 07 4〜6 章 | `LoggingTests` |
 | IT-CO-05 | アプリの起動とマイグレーション、DB の制約（ユーザー名の大文字・小文字を区別しない重複・形式）、開発用のテストデータ（本番の設定では入れない・二重に入らない） | 同値分割 | BR-02、DB 設計書 4.1・7 章 | `BackendApplicationTests`、`DevDataTests`、`DevDataNotLoadedTests` |
 
 ### 4.9 E2E テスト（主な利用の流れ）
@@ -225,3 +228,4 @@
 | 0.8 | 2026-10-18 | 返信の UT-CM-03・IT-CM-02 を追加（#73） |
 | 0.9 | 2026-10-18 | 画面の返信（UT-CM-04・05）とメンション（UT-MN-01〜04）を追加（#73） |
 | 1.0 | 2026-10-18 | 品質チェック（#76）：IT-CO-06（SQL の数）と E2E-06（返信・メンション）を追加。UT-CM-03・UT-MN-04 に観点を足し、カバレッジの今の値を更新 |
+| 1.1 | 2026-10-18 | 構造化ログ（#78）の UT-CO-04・05 と IT-CO-07 を追加 |

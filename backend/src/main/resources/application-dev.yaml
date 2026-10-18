@@ -15,3 +15,8 @@ springdoc:
     enabled: true
   swagger-ui:
     enabled: true
+# 開発中のログは、人が読みやすい今までの形式にする（JSON にしない。ログ設計書 2 章）
+logging:
+  structured:
+    format:
+      console: ""

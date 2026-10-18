@@ -3,6 +3,7 @@ package com.raisetimeline.config;
 import com.raisetimeline.auth.AuthenticatedUser;
 import com.raisetimeline.common.error.ErrorCode;
 import com.raisetimeline.common.error.ProblemDetailResponseWriter;
+import com.raisetimeline.common.logging.UserIdLoggingFilter;
 import com.raisetimeline.image.ImageStorage;
 import java.util.List;
 import org.springframework.context.annotation.Bean;
@@ -17,6 +18,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy;
 
@@ -86,6 +88,8 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .headers(headers -> headers.contentSecurityPolicy(csp -> csp.policyDirectives(contentSecurityPolicy(storage)))
                         .referrerPolicy(referrer -> referrer.policy(ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN)))
+                // ログに利用者の ID を付ける（アクセストークンを確かめた後。ログ設計書 4 章）
+                .addFilterAfter(new UserIdLoggingFilter(), BearerTokenAuthenticationFilter.class)
                 .formLogin(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .logout(AbstractHttpConfigurer::disable);

@@ -2,6 +2,7 @@ package com.raisetimeline.image;
 
 import com.raisetimeline.common.error.ApiException;
 import com.raisetimeline.common.error.ErrorCode;
+import com.raisetimeline.common.logging.LogMarkers;
 import com.raisetimeline.image.ImageInspector.ImageInfo;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -65,7 +66,13 @@ public class ImageUploads {
     /** 確かめた画像を、keyOf で決めたキーで保存する。DB の保存が取り消されたら、ファイルも消す。 */
     public StoredImage store(CheckedImage image, Function<ImageType, String> keyOf) {
         String key = keyOf.apply(image.info().type());
-        storage.put(key, image.data(), image.info().type().contentType());
+        try {
+            storage.put(key, image.data(), image.info().type().contentType());
+        } catch (RuntimeException e) {
+            // 保存先（S3）に書けないと、画像つきの投稿・アイコンの変更がすべて失敗する。critical で残す（ログ設計書 5 章）
+            LOG.error(LogMarkers.CRITICAL, "画像を保存できませんでした: {}", key, e);
+            throw e;
+        }
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
             public void afterCompletion(int status) {
