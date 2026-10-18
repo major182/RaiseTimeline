@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.raisetimeline.TestcontainersConfiguration;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,6 +17,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 
 /** Swagger UI（API 設計書 5 章）。開発の設定でだけ出し、本番と同じ既定の設定では出さない。 */
+@DisplayName("IT-CO-03 Swagger UI")
 class SwaggerUiTests {
 
     /** 既定の設定（本番と同じ）。 */

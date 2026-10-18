@@ -8,6 +8,7 @@ import com.raisetimeline.TestUsers;
 import com.raisetimeline.TestUsers.TestUser;
 import com.raisetimeline.TestcontainersConfiguration;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -17,6 +18,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 
 /** プロフィールの表示（F-US-01、F-FL-04、API 設計書 3.2・4.2）。 */
+@DisplayName("IT-US-01 プロフィールの取得")
 @SpringBootTest
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)

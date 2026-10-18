@@ -2,6 +2,7 @@ package com.raisetimeline.config;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -9,12 +10,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.raisetimeline.ApiClient;
 import com.raisetimeline.TestcontainersConfiguration;
 import java.time.Instant;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.JwsHeader;
@@ -24,6 +29,7 @@ import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.test.web.servlet.MockMvc;
 
 /** 認証（JWT の検証）・エラーの形・セキュリティのヘッダー（API 設計書 2.2、技術選定書 4.7）。 */
+@DisplayName("IT-AU-04・IT-CO-04 ログインの確かめ・エラーの形・セキュリティのヘッダー")
 @SpringBootTest
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)
@@ -56,6 +62,45 @@ class SecurityConfigTests {
                 .andExpect(jsonPath("$.code").value("UNAUTHENTICATED"))
                 .andExpect(jsonPath("$.status").value(401))
                 .andExpect(jsonPath("$.instance").value("/api/auth/me"));
+    }
+
+    /**
+     * ログインが要る API は、どれもログインしていなければ 401 を返す（BR-06、API 設計書 2.2）。
+     * 一部の API だけで確かめると、新しい API で設定を忘れても気づけないため、API 設計書 4 章の API をすべて並べる。
+     * 対象が存在するかを確かめる前に断るので、ID はない値でよい。
+     */
+    @ParameterizedTest(name = "{0} {1}")
+    @CsvSource({
+        "GET, /api/auth/me",
+        "PUT, /api/me/password",
+        "GET, /api/users/by-username/someone",
+        "GET, /api/users/1",
+        "PATCH, /api/me/profile",
+        "PUT, /api/me/avatar",
+        "GET, /api/users/search?q=a",
+        "GET, /api/users/recommendations",
+        "GET, /api/timeline/following",
+        "GET, /api/timeline/all",
+        "GET, /api/users/1/posts",
+        "POST, /api/posts",
+        "GET, /api/posts/1",
+        "PATCH, /api/posts/1",
+        "DELETE, /api/posts/1",
+        "GET, /api/posts/1/comments",
+        "POST, /api/posts/1/comments",
+        "DELETE, /api/comments/1",
+        "PUT, /api/posts/1/like",
+        "DELETE, /api/posts/1/like",
+        "GET, /api/posts/1/likes",
+        "PUT, /api/users/1/follow",
+        "DELETE, /api/users/1/follow",
+        "GET, /api/users/1/following",
+        "GET, /api/users/1/followers"
+    })
+    void ログインが要るAPIはどれもトークンがなければ401を返す(String method, String path) throws Exception {
+        mvc.perform(request(HttpMethod.valueOf(method), path))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("UNAUTHENTICATED"));
     }
 
     @Test

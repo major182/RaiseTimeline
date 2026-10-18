@@ -10,6 +10,7 @@ import com.raisetimeline.TestUsers.TestUser;
 import com.raisetimeline.TestcontainersConfiguration;
 import com.raisetimeline.post.TestPosts;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -19,6 +20,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 
 /** いいね・取り消し（F-LK-01、BR-33・34、API 設計書 4.6）。 */
+@DisplayName("IT-LK-01 いいね・取り消し")
 @SpringBootTest
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)

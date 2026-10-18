@@ -12,6 +12,7 @@ import com.raisetimeline.post.TestPosts;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -21,6 +22,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 
 /** 全体タブ（F-TL-05、BR-50-1・53、DB 設計書 5.1）。 */
+@DisplayName("IT-TL-01 全体タブ")
 @SpringBootTest
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)
@@ -59,6 +61,23 @@ class AllTimelineTests {
             expected.addFirst(TestPosts.insert(jdbc, stranger, "p" + i, i < 25 ? BASE : BASE.plusSeconds(i)));
         }
         assertThat(Timelines.readAll(me.client(), PATH)).containsExactlyElementsOf(expected);
+    }
+
+    @Test
+    void ちょうど二十件なら続きはなく二十一件なら続きがある() throws Exception {
+        // 21 件目があるかで続きの有無を決めている（Cursors#page）ので、20 件と 21 件の境目を確かめる（BR-53）
+        for (int i = 0; i < 20; i++) {
+            TestPosts.insert(jdbc, stranger, "p" + i, BASE.plusSeconds(i));
+        }
+        Timelines.Page twenty = Timelines.read(me.client(), PATH, null);
+        assertThat(twenty.items()).hasSize(20);
+        assertThat(twenty.nextCursor()).isNull();
+
+        TestPosts.insert(jdbc, stranger, "p20", BASE.plusSeconds(20));
+        Timelines.Page first = Timelines.read(me.client(), PATH, null);
+        assertThat(first.items()).hasSize(20);
+        assertThat(first.nextCursor()).isNotNull();
+        assertThat(Timelines.read(me.client(), PATH, first.nextCursor()).items()).hasSize(1);
     }
 
     @Test

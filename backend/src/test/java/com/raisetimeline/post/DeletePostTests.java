@@ -8,6 +8,7 @@ import com.raisetimeline.TestUsers;
 import com.raisetimeline.TestUsers.TestUser;
 import com.raisetimeline.TestcontainersConfiguration;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -17,6 +18,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 
 /** 投稿の削除（F-PO-03、BR-12・13、API 設計書 4.4）。 */
+@DisplayName("IT-PO-01・IT-PO-02 投稿の削除")
 @SpringBootTest
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)

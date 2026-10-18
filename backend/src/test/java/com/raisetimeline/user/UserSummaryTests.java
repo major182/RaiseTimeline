@@ -6,6 +6,7 @@ import com.raisetimeline.TestUsers;
 import com.raisetimeline.TestUsers.TestUser;
 import com.raisetimeline.TestcontainersConfiguration;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -15,6 +16,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 
 /** 利用者の要約（UserSummary。API 設計書 3.1）の中身。フォローの一覧を通して確かめる。 */
+@DisplayName("IT-US-01 利用者の要約")
 @SpringBootTest
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)

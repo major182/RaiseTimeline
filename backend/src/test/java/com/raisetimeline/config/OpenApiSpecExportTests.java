@@ -7,6 +7,7 @@ import com.raisetimeline.TestcontainersConfiguration;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -20,6 +21,7 @@ import org.springframework.test.web.servlet.MockMvc;
  *
  * <p>アプリを起動して取りに行く方法と違い、DB や環境変数を用意しなくてよい（他のテストと同じ Testcontainers を使う）。
  */
+@DisplayName("IT-CO-03 API 仕様書の書き出し")
 @SpringBootTest(properties = "springdoc.api-docs.enabled=true")
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)

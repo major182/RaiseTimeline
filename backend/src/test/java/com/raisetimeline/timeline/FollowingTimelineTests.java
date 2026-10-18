@@ -12,6 +12,7 @@ import com.raisetimeline.post.TestPosts;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -21,6 +22,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 
 /** フォロー中タブの、自分とフォロー中の人の投稿（F-TL-01、BR-50-2）。いいね経由・ハイライトは別のテスト。 */
+@DisplayName("IT-TL-03 フォロー中タブ")
 @SpringBootTest
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)

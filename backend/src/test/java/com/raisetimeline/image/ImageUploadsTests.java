@@ -12,6 +12,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.List;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -22,6 +23,7 @@ import org.springframework.transaction.support.TransactionTemplate;
  * 画像の確かめと、DB の結果に合わせた保存先の片付け（API 設計書 4.4、DB 設計書 4.3）。
  * DB の保存が取り消されたら保存したファイルを消し、DB の削除が確定したらファイルを消す。
  */
+@DisplayName("IT-PO-03 画像の保存と取り消し")
 @SpringBootTest
 @Import(TestcontainersConfiguration.class)
 class ImageUploadsTests {
