@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |---|---|
 | 文書番号 | 03 |
-| 版数 | 0.3 |
+| 版数 | 0.4 |
 | 作成日 | 2026-10-09 |
 | 作成者 | major182 |
 | 前提となる文書 | [01 要件定義書](01_requirements.md)、[01-1 機能一覧](01-1_feature-list.md)、[02 技術選定書](02_tech-stack.md) |
@@ -44,6 +44,7 @@
 | D-7 | 文字数は **Unicode のコードポイント（文字の番号）の数**で数える。Java の `String.codePointCount` と PostgreSQL の `char_length` が同じ数を返すので、画面・アプリ・DB の3か所で同じ基準になる | 多くの絵文字は1文字になる（BR-10）。家族の絵文字のように複数の文字を組み合わせた絵文字は、複数文字に数える |
 | D-8 | ユーザー名・メールアドレスの重複は、**小文字にした値の UNIQUE 索引**で禁止する | 大文字・小文字を区別せずに重複を禁止する（BR-02、BR-04）。表示は登録したときの大文字・小文字のまま |
 | D-9 | リフレッシュトークンは、**元の値ではなく SHA-256 のハッシュ**だけを保存する。アクセストークン（JWT）は DB に保存しない | DB が漏れても、ログインを続けるための鍵として使えないようにする。アクセストークンは署名と期限で検証できるので、保存する必要がない |
+| D-10 | 返信は、`comments` に**返信先のコメント（`parent_id`）**を足して表す。返信先は、返信ではないコメントだけ（一段だけ。BR-37）。メンションは記録せず、表示のたびに本文から見つける（BR-62） | 返信も本文・文字数・削除の権限がコメントと同じなので、別のテーブルにしない。一段だけにすると、木の形をたどる再帰の SQL がいらない |
 
 ### 1.3 そのほかの方針
 
@@ -61,6 +62,7 @@ erDiagram
     users ||--o{ posts : "投稿する"
     posts ||--o{ post_images : "添付する（最大4枚）"
     posts ||--o{ comments : "つけられる"
+    comments ||--o{ comments : "返信される"
     users ||--o{ comments : "書く"
     users ||--o{ likes : "する"
     posts ||--o{ likes : "される"
@@ -94,6 +96,7 @@ erDiagram
         BIGINT id PK
         BIGINT post_id FK
         BIGINT user_id FK
+        BIGINT parent_id FK
         TEXT body
     }
     likes {
@@ -117,7 +120,7 @@ erDiagram
 | 1 | `users` | 利用者 | 登録した利用者。プロフィールとログインの情報 | F-AU、F-US |
 | 2 | `posts` | 投稿 | 投稿の本文 | F-PO、F-TL |
 | 3 | `post_images` | 投稿の画像 | 投稿に添付した画像（S3 の保存先） | F-PO-02、F-PO-05 |
-| 4 | `comments` | コメント | 投稿へのコメント | F-CM |
+| 4 | `comments` | コメント | 投稿へのコメントと、コメントへの返信 | F-CM |
 | 5 | `likes` | いいね | 誰がどの投稿にいいねしたか | F-LK、F-TL-07、F-TL-08 |
 | 6 | `follows` | フォロー | 誰が誰をフォローしているか | F-FL、F-TL-01、F-US-04 |
 | 7 | `refresh_tokens` | リフレッシュトークン | ログインを続けるための鍵（ハッシュ） | F-AU-01〜03、F-AU-05 |
@@ -209,6 +212,7 @@ erDiagram
 | `id` | BIGINT | ○ | 自動の連番 | 主キー | ― |
 | `post_id` | BIGINT | ○ | | コメントした投稿 → `posts.id` | BR-30 |
 | `user_id` | BIGINT | ○ | | コメントした人 → `users.id` | BR-35 |
+| `parent_id` | BIGINT | | | 返信先のコメント → `comments.id`。返信でなければ NULL。返信先は同じ投稿の、返信ではないコメントだけ（アプリで確かめる）。返信先を消すと返信も消える | BR-37、BR-38 |
 | `body` | TEXT | ○ | | 本文。1〜280 文字 | BR-30 |
 
 **索引**
@@ -216,6 +220,7 @@ erDiagram
 | 索引 | 列 | 目的 |
 |---|---|---|
 | `comments_post_created_idx` | `(post_id, created_at, id)` | 投稿の詳細でのコメントの一覧（古い順）と、コメントの数 |
+| `comments_parent_created_idx` | `(parent_id, created_at, id)`。`parent_id IS NOT NULL` の行だけ | 返信の一覧（古い順）と、返信の数 |
 
 ### 4.5 `likes`（いいね）
 
@@ -336,7 +341,7 @@ LIMIT 20;
 フォロー中タブの最初の読み込みのときだけ行う。
 
 1. `users.last_timeline_viewed_at` を読む。NULL か、今から 6 時間以内なら、ハイライトは出さない
-2. 6 時間以上前なら（6 時間・3 件は設定値 `app.timeline`。要件定義書 Q-07）、その時刻から今までに投稿された、フォロー中の人（自分を除く）の投稿のうち、`いいねの数 + コメントの数 × 2` が 1 以上のものを多い順に最大 3 件取る（同じ点なら新しい順）
+2. 6 時間以上前なら（6 時間・3 件は設定値 `app.timeline`。要件定義書 Q-07）、その時刻から今までに投稿された、フォロー中の人（自分を除く）の投稿のうち、`いいねの数 + コメントの数（返信を含む） × 2` が 1 以上のものを多い順に最大 3 件取る（同じ点なら新しい順）
 3. `last_timeline_viewed_at` を今の時刻に更新する
 4. 取った投稿の ID をカーソルに含め、5.2 の一覧から除く
 
@@ -353,7 +358,7 @@ LIMIT 20;
 | 投稿者 | `users` を `id = ANY(:user_ids)` で取る |
 | 画像 | `post_images` を `post_id = ANY(:post_ids)` で、`position` の順に取る |
 | いいねの数 | `SELECT post_id, count(*) FROM likes WHERE post_id = ANY(:post_ids) GROUP BY post_id` |
-| コメントの数 | `comments` を同じ形で数える |
+| コメントの数 | `comments` を同じ形で数える（返信を含む。BR-31） |
 | 自分がいいね済みか | `likes` を `user_id = :me AND post_id = ANY(:post_ids)` で取る |
 | いいね経由の表示 | フォロー中の人のいいねを `post_id = ANY(:post_ids)` で取り、最も新しい人の表示名と、残りの人数を数える |
 
@@ -389,6 +394,16 @@ LIMIT 20 OFFSET :offset;
 | パスワードが合う | `failed_login_count = 0`、`locked_until = NULL` にしてログインさせる |
 | メールアドレスが登録されていない | 何も記録しない。画面には同じ失敗のメッセージを出す（BR-09） |
 
+### 5.9 コメントの一覧と返信（F-CM-02、F-CM-06）
+
+| 一覧 | 条件 | 並び |
+|---|---|---|
+| コメント | `post_id = :post_id AND parent_id IS NULL` | `created_at, id` の古い順に 20 件ずつ（カーソル方式） |
+| 返信 | `parent_id = :comment_id` | 同じ |
+
+- 返信の数は、一覧の 20 件を取った後、`SELECT parent_id, count(*) FROM comments WHERE parent_id = ANY(:comment_ids) GROUP BY parent_id` でまとめて数える（NF-PE-02）
+- 返信するとき、返信先が返信なら、その返信先（元のコメント）を `parent_id` にする（BR-37）。返信先が別の投稿のコメントなら断る
+
 ---
 
 ## 6. 業務ルールとの対応
@@ -402,6 +417,8 @@ LIMIT 20 OFFSET :offset;
 | BR-08 ログインの一時停止 | `users.failed_login_count`・`locked_until`（5.8） |
 | BR-10・BR-30 280 文字 | DB：CHECK（`char_length`）。アプリ・画面：同じ数え方（D-7） |
 | BR-11 本文も画像もない投稿の禁止 | アプリ（サービス層）。2つのテーブルにまたがるため DB の制約にできない |
+| BR-37 返信は一段だけ | アプリ（サービス層で、返信先が同じ投稿の返信ではないコメントになるようにする。5.9） |
+| BR-38 コメントを消すと返信も消える | DB：`parent_id` の `ON DELETE CASCADE` |
 | BR-12・BR-35 本人だけ編集・削除 | アプリ（サービス層で `user_id` を確かめる。NF-SE-04） |
 | BR-13 削除で一緒に消す | DB：`ON DELETE CASCADE`。S3 のファイルはアプリ（4.3） |
 | BR-16 編集済み | `posts.edited_at` |
@@ -419,7 +436,7 @@ LIMIT 20 OFFSET :offset;
 本番の初期データはない（利用者は画面から登録する）。
 
 - **拡張機能**：最初のマイグレーションで `CREATE EXTENSION IF NOT EXISTS pg_trgm;` を実行する
-- **開発用のテストデータ**：動作確認のため、テスト用の利用者 3 人（フォロー・いいね・コメントをし合った状態）と投稿を、開発環境だけで入れる。本番に入らないよう、Flyway の通常のマイグレーションとは別の場所（`db/dev-data/`）に置き、開発のプロファイルのときだけ読み込む
+- **開発用のテストデータ**：動作確認のため、テスト用の利用者 3 人（フォロー・いいね・コメント・返信・メンションをし合った状態）と投稿を、開発環境だけで入れる。本番に入らないよう、Flyway の通常のマイグレーションとは別の場所（`db/dev-data/`）に置き、開発のプロファイルのときだけ読み込む
 
 ---
 
@@ -430,3 +447,4 @@ LIMIT 20 OFFSET :offset;
 | 0.1 | 2026-10-09 | 初版 |
 | 0.2 | 2026-10-09 | 認証の JWT 方式への変更に合わせ、Spring Session のテーブルをやめて refresh_tokens を追加（D-9、4.7） |
 | 0.3 | 2026-10-09 | タイムラインの実装に合わせ、5.2 の SQL のいいね経由の部分を副問い合わせに包んだ（UNION の片側では ORDER BY が使えない）。5.3 の数値を設定値と明記 |
+| 0.4 | 2026-10-18 | 返信のため `comments.parent_id` と索引を追加（D-10、4.4、5.9）。コメントの数に返信を含めることを明記（5.3、5.5） |
