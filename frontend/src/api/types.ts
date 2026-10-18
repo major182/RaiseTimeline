@@ -48,10 +48,14 @@ export type FollowingTimeline = CursorPage<Post> & { highlights: Post[] }
 export type Comment = {
   id: number
   postId: number
+  /** 返信先のコメントの ID。返信でなければ null（BR-37）。 */
+  parentId: number | null
   author: UserSummary
   body: string
   createdAt: string
-  /** コメントした本人か投稿した本人なら true（削除のメニューを出す。BR-35）。 */
+  /** 返信の数。返信では 0。 */
+  replyCount: number
+  /** 書いた本人か投稿した本人なら true（削除のメニューを出す。BR-35）。 */
   deletable: boolean
 }
 

@@ -11,9 +11,11 @@ function makeComment(overrides: Partial<Comment> = {}): Comment {
   return {
     id: 1,
     postId: 100,
+    parentId: null,
     author: makeUser(),
     body: 'コメントです',
     createdAt: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
+    replyCount: 0,
     deletable: false,
     ...overrides,
   }
@@ -141,6 +143,203 @@ describe('コメント（F-CM-01〜04）', () => {
     expect(await screen.findByText('コメントを削除しました')).toBeInTheDocument()
     expect(commentBodies()).toEqual(['消せないコメント'])
     expect(screen.getByRole('link', { name: 'コメント（0）' })).toBeInTheDocument()
+  })
+})
+
+describe('返信（F-CM-05・06、画面設計書 5.7）', () => {
+  const comment = makeComment({ id: 1, body: '元のコメント', replyCount: 2 })
+  const reply = (id: number, body: string, overrides: Partial<Comment> = {}) =>
+    makeComment({
+      id,
+      parentId: 1,
+      body,
+      author: makeUser({ id: 3, username: 'suzuki_ken', displayName: '鈴木' }),
+      ...overrides,
+    })
+
+  function openWithReplies(extra: Parameters<typeof stubApi>[0] = {}) {
+    return openDetail({
+      'GET /api/posts/100': json(200, makePost({ commentCount: 3 })),
+      'GET /api/posts/100/comments': page([comment]),
+      'GET /api/comments/1/replies': page([reply(11, '返信1'), reply(12, '返信2')]),
+      ...extra,
+    })
+  }
+
+  const replyList = () => screen.queryByRole('region', { name: '返信の一覧' })
+
+  it('UT-CM-04 返信は最初は閉じ、「返信を表示（N 件）」で古い順に出し、「返信を隠す」で閉じる', async () => {
+    const { user, fetchMock } = openWithReplies()
+    await user.click(await screen.findByRole('button', { name: '返信を表示（2 件）' }))
+    expect(fetchMock.mock.calls.some((c) => c[0] === '/api/comments/1/replies')).toBe(true)
+    await waitFor(() => expect(commentBodies()).toEqual(['元のコメント', '返信1', '返信2']))
+    expect(within(replyList()!).getAllByRole('article', { name: '鈴木さんの返信' })).toHaveLength(2)
+
+    await user.click(screen.getByRole('button', { name: '返信を隠す' }))
+    expect(replyList()).not.toBeInTheDocument()
+    expect(commentBodies()).toEqual(['元のコメント'])
+  })
+
+  it('UT-CM-04 返信がなければ「返信を表示」を出さず、返信の一覧も読まない', async () => {
+    const { fetchMock } = openDetail()
+    await screen.findByText('コメントです')
+    expect(screen.queryByRole('button', { name: /返信を表示/ })).not.toBeInTheDocument()
+    expect(fetchMock.mock.calls.some((c) => String(c[0]).includes('/replies'))).toBe(false)
+  })
+
+  it('UT-CM-04 返信が 20 件を超えたら「さらに返信を表示」で続きを読む', async () => {
+    const { user } = openWithReplies({
+      'GET /api/comments/1/replies': page([reply(11, '返信1')], 'next'),
+      'GET /api/comments/1/replies?cursor=next': page([reply(12, '返信2')]),
+    })
+    await user.click(await screen.findByRole('button', { name: '返信を表示（2 件）' }))
+    await user.click(await screen.findByRole('button', { name: 'さらに返信を表示' }))
+    await waitFor(() => expect(commentBodies()).toEqual(['元のコメント', '返信1', '返信2']))
+    expect(screen.queryByRole('button', { name: 'さらに返信を表示' })).not.toBeInTheDocument()
+  })
+
+  it('UT-CM-04 コメントに返信すると、返信の一覧を開いて最後に足し、数を増やす', async () => {
+    let sent: unknown
+    const created = reply(13, '書いた返信', { author: makeUser({ id: 1 }) })
+    const { user } = openWithReplies({
+      'POST /api/posts/100/comments': (body) => {
+        sent = body
+        return json(201, created)
+      },
+      // 返信の一覧はまだ読んでいないので、返信した後にサーバーから読む（書いた返信も入っている）
+      'GET /api/comments/1/replies': () =>
+        page(sent ? [reply(11, '返信1'), reply(12, '返信2'), created] : []),
+    })
+    await user.click(await screen.findByRole('button', { name: '返信' }))
+    const input = await screen.findByRole('textbox', { name: '返信' })
+    expect(input).toHaveValue('') // コメントへの返信は、@ユーザー名 を入れない
+    expect(input).toHaveFocus()
+    await user.type(input, '書いた返信')
+    await user.click(screen.getByRole('button', { name: '返信する' }))
+
+    await waitFor(() =>
+      expect(commentBodies()).toEqual(['元のコメント', '返信1', '返信2', '書いた返信']),
+    )
+    expect(sent).toEqual({ body: '書いた返信', parentId: 1 })
+    expect(screen.queryByRole('textbox', { name: '返信' })).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'コメント（4）' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: '返信を隠す' }))
+    expect(screen.getByRole('button', { name: '返信を表示（3 件）' })).toBeInTheDocument()
+  })
+
+  it('UT-CM-04 返信に返信すると、返信先の @ユーザー名 を入れて開き、その返信を返信先として送る', async () => {
+    let sent: unknown
+    const { user } = openWithReplies({
+      'POST /api/posts/100/comments': (body) => {
+        sent = body
+        return json(201, reply(13, '@suzuki_ken どうも'))
+      },
+    })
+    await user.click(await screen.findByRole('button', { name: '返信を表示（2 件）' }))
+    const second = await screen.findByText('返信2')
+    await user.click(within(second.closest('article')!).getByRole('button', { name: '返信' }))
+    const input = await screen.findByRole('textbox', { name: '返信' })
+    expect(input).toHaveValue('@suzuki_ken ')
+    await user.type(input, 'どうも')
+    await user.click(screen.getByRole('button', { name: '返信する' }))
+
+    await waitFor(() => expect(sent).toEqual({ body: '@suzuki_ken どうも', parentId: 12 }))
+  })
+
+  it('UT-CM-04 入力欄は同時に 1 つだけ開く', async () => {
+    const { user } = openDetail({
+      'GET /api/posts/100/comments': page([
+        makeComment({ id: 1, body: 'A' }),
+        makeComment({ id: 2, body: 'B' }),
+      ]),
+    })
+    await screen.findByText('B')
+    const [first, second] = screen.getAllByRole('button', { name: '返信' })
+    await user.click(first)
+    await user.click(second)
+    expect(screen.getAllByRole('textbox', { name: '返信' })).toHaveLength(1)
+  })
+
+  it('UT-CM-04 入力がなければキャンセルですぐ閉じ、入力があれば C-03 で確かめる', async () => {
+    const { user } = openWithReplies()
+    await user.click(await screen.findByRole('button', { name: '返信' }))
+    await user.click(screen.getByRole('button', { name: 'キャンセル' }))
+    expect(screen.queryByRole('textbox', { name: '返信' })).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: '返信' }))
+    await user.type(screen.getByRole('textbox', { name: '返信' }), '途中')
+    await user.click(screen.getByRole('button', { name: 'キャンセル' }))
+    const confirm = await screen.findByRole('dialog', { name: '編集内容を破棄しますか？' })
+    await user.click(within(confirm).getByRole('button', { name: '破棄' }))
+    await waitFor(() =>
+      expect(screen.queryByRole('textbox', { name: '返信' })).not.toBeInTheDocument(),
+    )
+  })
+
+  it('UT-CM-04 返信先が消えていたら（404）S-05 を出し、そのコメントを一覧から消す', async () => {
+    const { user } = openWithReplies({
+      'POST /api/posts/100/comments': json(404, {
+        status: 404,
+        code: 'NOT_FOUND',
+        detail: '見つかりません',
+      }),
+    })
+    await user.click(await screen.findByRole('button', { name: '返信' }))
+    await user.type(screen.getByRole('textbox', { name: '返信' }), '返信')
+    await user.click(screen.getByRole('button', { name: '返信する' }))
+
+    expect(
+      await screen.findByText('このコメントは削除されたため、返信できません'),
+    ).toBeInTheDocument()
+    expect(commentBodies()).toEqual([])
+    expect(screen.getByRole('link', { name: 'コメント（0）' })).toBeInTheDocument()
+  })
+
+  it('UT-CM-04 返信があるコメントは C-05 で確かめ、消したら返信の数も合わせてコメントの数を減らす', async () => {
+    const { user } = openWithReplies({
+      'GET /api/posts/100/comments': page([{ ...comment, deletable: true }]),
+      'DELETE /api/comments/1': noContent(),
+    })
+    await user.click(await screen.findByRole('button', { name: 'コメントのメニュー' }))
+    await user.click(screen.getByRole('menuitem', { name: '削除' }))
+    const confirm = await screen.findByRole('dialog', { name: 'コメントを削除しますか？' })
+    expect(confirm).toHaveTextContent('この操作は取り消せません。返信も削除されます。')
+    await user.click(within(confirm).getByRole('button', { name: '削除' }))
+
+    expect(await screen.findByText('コメントを削除しました')).toBeInTheDocument()
+    expect(commentBodies()).toEqual([])
+    expect(screen.getByRole('link', { name: 'コメント（0）' })).toBeInTheDocument()
+  })
+
+  it('UT-CM-04 返信を消したら、返信の数とコメントの数を 1 つ減らす（C-02）', async () => {
+    const { user } = openWithReplies({
+      'GET /api/comments/1/replies': page([
+        reply(11, '返信1', { deletable: true }),
+        reply(12, '返信2'),
+      ]),
+      'DELETE /api/comments/11': noContent(),
+    })
+    await user.click(await screen.findByRole('button', { name: '返信を表示（2 件）' }))
+    await user.click(await screen.findByRole('button', { name: '返信のメニュー' }))
+    await user.click(screen.getByRole('menuitem', { name: '削除' }))
+    const confirm = await screen.findByRole('dialog', { name: 'コメントを削除しますか？' })
+    expect(confirm).not.toHaveTextContent('返信も削除されます')
+    await user.click(within(confirm).getByRole('button', { name: '削除' }))
+
+    await waitFor(() => expect(commentBodies()).toEqual(['元のコメント', '返信2']))
+    expect(screen.getByRole('link', { name: 'コメント（2）' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: '返信を隠す' }))
+    expect(screen.getByRole('button', { name: '返信を表示（1 件）' })).toBeInTheDocument()
+  })
+
+  it('UT-MN-03 コメントの本文の @ユーザー名 はプロフィールへのリンクにする', async () => {
+    openDetail({
+      'GET /api/posts/100/comments': page([makeComment({ body: '@sato_hana さんへ' })]),
+    })
+    expect(await screen.findByRole('link', { name: '@sato_hana' })).toHaveAttribute(
+      'href',
+      '/users/sato_hana',
+    )
   })
 })
 

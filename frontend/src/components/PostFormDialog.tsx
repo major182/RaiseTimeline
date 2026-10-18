@@ -6,7 +6,6 @@ import {
   DialogContent,
   IconButton,
   Stack,
-  TextField,
   useMediaQuery,
   useTheme,
 } from '@mui/material'
@@ -15,6 +14,7 @@ import { useMe } from '../auth/useMe'
 import { BODY_MAX_LENGTH, countChars } from '../postLength'
 import { CharCounter } from './CharCounter'
 import { ConfirmDialog } from './ConfirmDialog'
+import { MentionTextField } from './MentionTextField'
 import { UserAvatar } from './UserAvatar'
 
 type Props = {
@@ -116,9 +116,9 @@ export function PostFormDialog({
           <Stack direction="row" spacing={1.5}>
             {me && <UserAvatar user={me} />}
             <Box sx={{ flex: 1, minWidth: 0 }}>
-              <TextField
+              <MentionTextField
                 value={body}
-                onChange={(e) => onBodyChange(e.target.value)}
+                onValueChange={onBodyChange}
                 placeholder="いまどうしてる？"
                 multiline
                 minRows={3}

@@ -7,6 +7,7 @@ import type { Post } from '../api/types'
 import { formatCount, formatFullTime, formatPostTime, likedViaText } from '../format'
 import { LikeButton } from './LikeButton'
 import { PostImages } from './PostImages'
+import { MentionText } from './MentionText'
 import { PostMenu } from './PostMenu'
 import { UserAvatar } from './UserAvatar'
 
@@ -126,7 +127,7 @@ export function PostCard({ post, detail = false, onDeleted }: Props) {
                     }),
               }}
             >
-              {post.body}
+              <MentionText text={post.body} />
             </Typography>
           )}
           {clamped && !detail && (

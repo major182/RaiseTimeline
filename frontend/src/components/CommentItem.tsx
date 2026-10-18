@@ -1,19 +1,27 @@
 import MoreVert from '@mui/icons-material/MoreVert'
-import { Box, IconButton, Link, Menu, MenuItem, Stack, Typography } from '@mui/material'
+import { Box, Button, IconButton, Link, Menu, MenuItem, Stack, Typography } from '@mui/material'
 import { useState } from 'react'
 import { Link as RouterLink } from 'react-router'
 import type { Comment } from '../api/types'
 import { formatFullTime, formatPostTime } from '../format'
 import { ConfirmDialog } from './ConfirmDialog'
+import { MentionText } from './MentionText'
 import { UserAvatar } from './UserAvatar'
 
-type Props = { comment: Comment; onDelete: (comment: Comment) => void }
+type Props = {
+  comment: Comment
+  onDelete: (comment: Comment) => void
+  /** 「返信」を押した（F-CM-05）。 */
+  onReply: (comment: Comment) => void
+}
 
 /**
- * コメントの行（画面設計書 5.7）。アイコン・表示名・ユーザー名・日時・本文。
- * 削除のメニューは、コメントした本人か投稿した本人にだけ出す（BR-35。サーバーが deletable で知らせる）。
+ * コメント・返信の行（画面設計書 5.7）。アイコン・表示名・ユーザー名・日時・本文・「返信」ボタン。
+ * 削除のメニューは、書いた本人か投稿した本人にだけ出す（BR-35。サーバーが deletable で知らせる）。
+ * 返信は、並べる側（CommentThread）が字下げする。
  */
-export function CommentItem({ comment, onDelete }: Props) {
+export function CommentItem({ comment, onDelete, onReply }: Props) {
+  const isReply = comment.parentId !== null
   const [anchor, setAnchor] = useState<HTMLElement | null>(null)
   const [confirming, setConfirming] = useState(false)
   const profile = `/users/${comment.author.username}`
@@ -21,8 +29,8 @@ export function CommentItem({ comment, onDelete }: Props) {
   return (
     <Box
       component="article"
-      aria-label={`${comment.author.displayName}さんのコメント`}
-      sx={{ px: 2, py: 1.5, borderBottom: 1, borderColor: 'divider' }}
+      aria-label={`${comment.author.displayName}さんの${isReply ? '返信' : 'コメント'}`}
+      sx={{ py: 1.5 }}
     >
       <Stack direction="row" spacing={1.5}>
         <Link
@@ -56,7 +64,7 @@ export function CommentItem({ comment, onDelete }: Props) {
             {comment.deletable && (
               <IconButton
                 size="small"
-                aria-label="コメントのメニュー"
+                aria-label={isReply ? '返信のメニュー' : 'コメントのメニュー'}
                 onClick={(e) => setAnchor(e.currentTarget)}
                 sx={{ ml: 'auto', mt: -0.5 }}
               >
@@ -68,8 +76,16 @@ export function CommentItem({ comment, onDelete }: Props) {
             data-testid="comment-body"
             sx={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}
           >
-            {comment.body}
+            <MentionText text={comment.body} />
           </Typography>
+          <Button
+            size="small"
+            color="inherit"
+            onClick={() => onReply(comment)}
+            sx={{ ml: -1, mt: 0.5, minWidth: 0, color: 'text.secondary' }}
+          >
+            返信
+          </Button>
         </Box>
       </Stack>
       <Menu anchorEl={anchor} open={anchor !== null} onClose={() => setAnchor(null)}>
@@ -85,8 +101,13 @@ export function CommentItem({ comment, onDelete }: Props) {
       </Menu>
       <ConfirmDialog
         open={confirming}
+        // 返信があるコメントは C-05、ほかは（返信も）C-02（BR-38）
         title="コメントを削除しますか？"
-        body="この操作は取り消せません。"
+        body={
+          comment.replyCount > 0
+            ? 'この操作は取り消せません。返信も削除されます。'
+            : 'この操作は取り消せません。'
+        }
         confirmLabel="削除"
         danger
         onCancel={() => setConfirming(false)}
