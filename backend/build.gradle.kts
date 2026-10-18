@@ -1,6 +1,7 @@
 plugins {
     java
     checkstyle
+    jacoco
     id("org.springframework.boot") version "4.1.1"
     id("io.spring.dependency-management") version "1.1.7"
     id("com.diffplug.spotless") version "8.10.4"
@@ -54,6 +55,42 @@ tasks.withType<Test> {
     useJUnitPlatform()
     // テスト用の設定（src/test/resources/application-test.yaml。JWT の署名の鍵など）で動かす
     systemProperty("spring.profiles.active", "test")
+}
+
+// カバレッジ（テストが通ったコードの割合。テスト仕様書 5 章）。テストのあとにレポートを作り、check で下回っていないか確かめる
+jacoco {
+    toolVersion = "0.8.15"
+}
+
+tasks.test {
+    finalizedBy(tasks.jacocoTestReport)
+}
+
+tasks.jacocoTestReport {
+    reports {
+        xml.required = false
+        html.required = true
+    }
+}
+
+// しきい値は 2026-10-18 の値（命令 94%・分岐 81%）を少し下回る線。下がったら check を失敗させる
+tasks.jacocoTestCoverageVerification {
+    violationRules {
+        rule {
+            limit {
+                counter = "INSTRUCTION"
+                minimum = "0.90".toBigDecimal()
+            }
+            limit {
+                counter = "BRANCH"
+                minimum = "0.75".toBigDecimal()
+            }
+        }
+    }
+}
+
+tasks.check {
+    dependsOn(tasks.jacocoTestCoverageVerification)
 }
 
 // ./gradlew bootRun は開発用の設定（application-dev.yaml）で起動する

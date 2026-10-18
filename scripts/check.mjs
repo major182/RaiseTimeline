@@ -1,7 +1,7 @@
 // backend と frontend のチェックをまとめて実行する（コミット・プッシュの前に使う）
 //   node scripts/check.mjs
-// backend：整形（Spotless）・lint（Checkstyle）・テスト。テストは Docker を使うので、先に Docker Desktop を起動しておく
-// frontend：型・lint（ESLint）・整形（Prettier）
+// backend：整形（Spotless）・lint（Checkstyle）・テスト・カバレッジ（JaCoCo）。テストは Docker を使うので、先に Docker Desktop を起動しておく
+// frontend：型・lint（ESLint）・整形（Prettier）・テストとカバレッジ（Vitest）
 import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
