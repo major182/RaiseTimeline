@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Limit;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -66,7 +67,13 @@ public class CommentService {
     public CommentResponse create(long meId, long postId, CreateCommentRequest request) {
         Post post = findPost(postId);
         Long parentId = request.parentId() == null ? null : replyTarget(request.parentId(), postId);
-        Comment comment = comments.save(new Comment(postId, meId, parentId, request.body()));
+        Comment comment;
+        try {
+            comment = comments.saveAndFlush(new Comment(postId, meId, parentId, request.body()));
+        } catch (DataIntegrityViolationException e) {
+            // 確かめた直後に、投稿か返信先が消された場合。DB の外部キーが最後の安全網になる（API 設計書 4.5 の 404）
+            throw new ApiException(ErrorCode.NOT_FOUND);
+        }
         return toResponses(List.of(comment), post, meId).getFirst();
     }
 

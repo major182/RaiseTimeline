@@ -4,7 +4,10 @@ import { useState } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { makeUser } from '../test/fixtures'
 import { json, renderWithProviders, stubApi } from '../test/render'
+import { searchUsers } from '../api/users'
+import { QUERY_KEYS } from '../queryCache'
 import { MentionTextField } from './MentionTextField'
+import { UserList } from './UserList'
 
 const users = [
   makeUser({ id: 2, username: 'yamada', displayName: '山田' }),
@@ -118,5 +121,37 @@ describe('メンションの候補（画面設計書 4.5 MC-01、BR-61）', () =
     await screen.findByRole('listbox')
     await user.tab()
     await waitFor(() => expect(screen.queryByRole('listbox')).not.toBeInTheDocument())
+  })
+})
+
+describe('候補と検索画面のキャッシュ（B-1）', () => {
+  /** 押すと、検索画面と同じ利用者の一覧（UserList）を出す。 */
+  function SearchLater() {
+    const [shown, setShown] = useState(false)
+    return shown ? (
+      <UserList
+        queryKey={QUERY_KEYS.search('yam')}
+        fetchPage={(cursor) => searchUsers('yam', cursor)}
+        emptyText="見つかりません"
+      />
+    ) : (
+      <button onClick={() => setShown(true)}>検索する</button>
+    )
+  }
+
+  it('UT-MN-04 候補を出した後に同じ語で検索しても、検索の一覧を出せる', async () => {
+    stubApi({ [search('yam')]: json(200, { items: users, nextCursor: null }) })
+    renderWithProviders(
+      <>
+        <Field />
+        <SearchLater />
+      </>,
+    )
+    const user = userEvent.setup()
+    await user.type(screen.getByRole('textbox', { name: '本文' }), '@yam')
+    await screen.findByRole('listbox')
+    await user.click(screen.getByRole('button', { name: '検索する' }))
+
+    expect(await screen.findByText('山本')).toBeInTheDocument()
   })
 })

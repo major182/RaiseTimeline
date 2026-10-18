@@ -17,6 +17,7 @@ import com.raisetimeline.user.UserSummaries;
 import java.util.List;
 import java.util.Optional;
 import org.mockito.ArgumentCaptor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -68,14 +69,14 @@ class CommentServiceUnitTests {
     /** 返信を保存したときの返信先（parent_id）。 */
     private Long savedParentId(long parentId) {
         when(posts.findById(POST_ID)).thenReturn(Optional.of(TestPosts.entity(POST_ID, OTHER, "本文")));
-        when(comments.save(any())).thenAnswer(invocation -> {
+        when(comments.saveAndFlush(any())).thenAnswer(invocation -> {
             Comment saved = invocation.getArgument(0);
             ReflectionTestUtils.setField(saved, "id", 40L); // DB が ID を振るのと同じにする
             return saved;
         });
         service.create(ME, POST_ID, new CreateCommentRequest("返信", parentId));
         ArgumentCaptor<Comment> saved = ArgumentCaptor.forClass(Comment.class);
-        verify(comments).save(saved.capture());
+        verify(comments).saveAndFlush(saved.capture());
         return saved.getValue().getParentId();
     }
 
@@ -106,7 +107,18 @@ class CommentServiceUnitTests {
                 .isEqualTo(ErrorCode.NOT_FOUND);
         assertThat(codeOf(() -> service.create(ME, POST_ID, new CreateCommentRequest("x", 31L))))
                 .isEqualTo(ErrorCode.NOT_FOUND);
-        verify(comments, never()).save(any());
+        verify(comments, never()).saveAndFlush(any());
+    }
+
+    @Test
+    @DisplayName("UT-CM-03 確かめた直後に返信先か投稿が消され、保存で外部キーに当たったら NOT_FOUND")
+    void 保存の直前に返信先が消された() {
+        when(posts.findById(POST_ID)).thenReturn(Optional.of(TestPosts.entity(POST_ID, OTHER, "本文")));
+        when(comments.findById(COMMENT_ID)).thenReturn(Optional.of(comment(OTHER)));
+        when(comments.saveAndFlush(any())).thenThrow(new DataIntegrityViolationException("fk"));
+
+        assertThat(codeOf(() -> service.create(ME, POST_ID, new CreateCommentRequest("返信", COMMENT_ID))))
+                .isEqualTo(ErrorCode.NOT_FOUND);
     }
 
     @Test
@@ -175,7 +187,7 @@ class CommentServiceUnitTests {
         assertThat(codeOf(() -> service.create(ME, POST_ID, new CreateCommentRequest("x"))))
                 .isEqualTo(ErrorCode.NOT_FOUND);
         assertThat(codeOf(() -> service.list(POST_ID, null, ME))).isEqualTo(ErrorCode.NOT_FOUND);
-        verify(comments, never()).save(any());
+        verify(comments, never()).saveAndFlush(any());
     }
 
     @Test
