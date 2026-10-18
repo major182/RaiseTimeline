@@ -1,6 +1,7 @@
 import { Box, CircularProgress } from '@mui/material'
+import { useQueryClient } from '@tanstack/react-query'
 import { Navigate, Outlet, useLocation } from 'react-router'
-import { useMe } from './useMe'
+import { LOGGED_OUT_QUERY_KEY, useMe } from './useMe'
 
 /** ログイン画面へ移動するときに渡す値。ログインの後に、元の画面へ戻すために使う。 */
 export type LoginRedirectState = { from?: string }
@@ -17,9 +18,12 @@ function Loading() {
 export function RequireAuth() {
   const { data: me, isPending } = useMe()
   const location = useLocation()
+  const queryClient = useQueryClient()
   if (isPending) return <Loading />
   if (!me) {
-    const state: LoginRedirectState = { from: location.pathname + location.search }
+    // 自分でログアウトしたときは、戻る先を付けない（ログインの後はホーム）
+    const loggedOut = queryClient.getQueryData(LOGGED_OUT_QUERY_KEY) === true
+    const state: LoginRedirectState = loggedOut ? {} : { from: location.pathname + location.search }
     return <Navigate to="/login" replace state={state} />
   }
   return <Outlet />

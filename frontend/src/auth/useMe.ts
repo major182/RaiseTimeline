@@ -16,3 +16,10 @@ export function useMe() {
     retry: false,
   })
 }
+
+/**
+ * 自分でログアウトした印（ログアウトで true、期限切れで消す）。
+ * RequireAuth がログイン画面へ移すとき、今の画面を「ログインの後に戻る先」にしないために使う。
+ * そうしないと、ログアウトした画面（設定）が、次に（別のアカウントで）ログインしたときに開いてしまう。
+ */
+export const LOGGED_OUT_QUERY_KEY = ['loggedOut'] as const

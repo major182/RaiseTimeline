@@ -4,7 +4,7 @@ import { ApiError } from '../api/client'
 import { TEST_ME, renderWithProviders } from '../test/render'
 import { SessionExpiryHandler } from './SessionExpiryHandler'
 import { createQueryClient, setUnauthenticatedHandler } from './session'
-import { ME_QUERY_KEY } from './useMe'
+import { LOGGED_OUT_QUERY_KEY, ME_QUERY_KEY } from './useMe'
 
 const EXPIRED = 'ログインの有効期限が切れました。もう一度ログインしてください'
 
@@ -50,6 +50,18 @@ describe('ログインの期限切れの扱い（画面設計書 1.7）', () => 
 
     expect(await screen.findByText(EXPIRED)).toBeInTheDocument()
     expect(queryClient.getQueryData(ME_QUERY_KEY)).toBeNull()
+  })
+
+  it('UT-AU-07 前にログアウトした印が残っていても消す（ログインし直したら今の画面へ戻すため）', async () => {
+    const queryClient = createQueryClient()
+    queryClient.setQueryData(LOGGED_OUT_QUERY_KEY, true)
+    queryClient.setQueryData(ME_QUERY_KEY, TEST_ME)
+    renderWithProviders(<SessionExpiryHandler />, queryClient)
+
+    await fail(queryClient, new ApiError(401, 'UNAUTHENTICATED', '期限切れ'))
+
+    await waitFor(() => expect(queryClient.getQueryData(ME_QUERY_KEY)).toBeNull())
+    expect(queryClient.getQueryData(LOGGED_OUT_QUERY_KEY)).toBeUndefined()
   })
 
   it('UT-AU-07 すでにログインしていない状態なら、メッセージを重ねて出さない', async () => {

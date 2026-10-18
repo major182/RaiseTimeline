@@ -14,7 +14,7 @@ import { useState, type ChangeEvent, type FormEvent } from 'react'
 import { Link as RouterLink } from 'react-router'
 import { changePassword, logout, type PasswordChangeInput } from '../api/auth'
 import { ApiError } from '../api/client'
-import { ME_QUERY_KEY } from '../auth/useMe'
+import { LOGGED_OUT_QUERY_KEY, ME_QUERY_KEY } from '../auth/useMe'
 import { type PasswordChangeErrors, validatePasswordChange } from '../auth/validation'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { PageColumn } from '../components/PageColumn'
@@ -145,6 +145,7 @@ function LogoutSection() {
       queryClient.removeQueries({ queryKey: ['posts'] })
       queryClient.removeQueries({ queryKey: ['users'] })
       queryClient.removeQueries({ queryKey: ['comments'] })
+      queryClient.setQueryData(LOGGED_OUT_QUERY_KEY, true)
       queryClient.setQueryData(ME_QUERY_KEY, null)
     },
     onError: (error) => notify(error.message, 'error'),
