@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { ApiError, refreshSession, request } from './client'
+import { ApiError, refreshSession, request, withRequestId } from './client'
 import { getAccessToken, setAccessToken } from './tokenStore'
 
 function jsonResponse(status: number, body: unknown): Response {
@@ -140,5 +140,63 @@ describe('refreshSession', () => {
     const results = await Promise.all([refreshSession(), refreshSession(), refreshSession()])
     expect(fetchMock).toHaveBeenCalledTimes(1)
     expect(results.every((r) => r?.accessToken === 'new')).toBe(true)
+  })
+})
+
+describe('問い合わせ番号（X-Request-Id）', () => {
+  const withId = (status: number, body: unknown, requestId = 'req-1') =>
+    new Response(typeof body === 'string' ? body : JSON.stringify(body), {
+      status,
+      headers: { 'Content-Type': 'application/json', 'X-Request-Id': requestId },
+    })
+
+  it('サーバーの誤り（500）ならメッセージの後ろに問い合わせ番号を付ける', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(withId(500, { code: 'INTERNAL_ERROR', detail: 'エラーです' })),
+    )
+
+    const error = await request('GET', '/api/posts').catch((e: unknown) => e)
+    expect(error).toBeInstanceOf(ApiError)
+    expect((error as ApiError).message).toBe('エラーです（問い合わせ番号：req-1）')
+    expect((error as ApiError).requestId).toBe('req-1')
+  })
+
+  it('本文が JSON でない 5xx（プロキシの誤りなど）でも、番号があれば付ける', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(withId(502, '<html>')))
+
+    await expect(request('GET', '/api/posts')).rejects.toMatchObject({
+      status: 502,
+      message: 'エラーが発生しました。時間をおいてもう一度お試しください（問い合わせ番号：req-1）',
+    })
+  })
+
+  it('入力の誤りなどの 4xx には付けないが、requestId は持つ', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(withId(409, { code: 'CONFLICT', detail: '使われています' })),
+    )
+
+    await expect(request('POST', '/api/posts', {})).rejects.toMatchObject({
+      message: '使われています',
+      requestId: 'req-1',
+    })
+  })
+
+  it('状態コードの境界（499・500・599）と番号のあり／なし', () => {
+    expect(withRequestId('m', 499, 'id')).toBe('m')
+    expect(withRequestId('m', 500, 'id')).toBe('m（問い合わせ番号：id）')
+    expect(withRequestId('m', 599, 'id')).toBe('m（問い合わせ番号：id）')
+    expect(withRequestId('m', 500, undefined)).toBe('m')
+    expect(withRequestId('m', 500, '')).toBe('m')
+  })
+
+  it('応答に番号がなければ（ALB が返した 503 など）付けない', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('<html>', { status: 503 })))
+
+    await expect(request('GET', '/api/posts')).rejects.toMatchObject({
+      message: 'エラーが発生しました。時間をおいてもう一度お試しください',
+      requestId: undefined,
+    })
   })
 })

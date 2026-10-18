@@ -2,23 +2,35 @@
 // - アクセストークンを Authorization: Bearer ヘッダーに入れて送る（JWT 方式。技術選定書 4.1）
 // - アクセストークンの期限切れ（401）なら、一度だけ取り直して同じ通信をやり直す
 // - エラーは ApiError にして投げる。画面は code（エラーの種類）と errors（入力欄ごとの誤り）で表示を決める
+// - サーバーの誤り（5xx）のメッセージには、問い合わせ番号（X-Request-Id）を付ける（画面設計書 S-04、ログ設計書 4 章）
 import { getAccessToken, setAccessToken } from './tokenStore'
 
 /** 入力欄ごとの誤り（API 設計書 2.4 の errors の1件）。 */
 export type FieldError = { field: string; code: string; message: string }
 
-/** API が返したエラー。通信そのものに失敗したときは status が 0、code が NETWORK_ERROR。 */
+/**
+ * API が返したエラー。通信そのものに失敗したときは status が 0、code が NETWORK_ERROR。
+ * requestId は応答の X-Request-Id（サーバーのログの request_id）。ないときは undefined。
+ */
 export class ApiError extends Error {
   readonly status: number
   readonly code: string
   readonly errors: FieldError[]
+  readonly requestId: string | undefined
 
-  constructor(status: number, code: string, message: string, errors: FieldError[] = []) {
+  constructor(
+    status: number,
+    code: string,
+    message: string,
+    errors: FieldError[] = [],
+    requestId?: string,
+  ) {
     super(message)
     this.name = 'ApiError'
     this.status = status
     this.code = code
     this.errors = errors
+    this.requestId = requestId
   }
 
   /** 指定した入力欄の誤りのメッセージ。なければ undefined。 */
@@ -112,7 +124,16 @@ async function parse<T>(response: Response): Promise<T> {
   throw await toApiError(response)
 }
 
+/**
+ * サーバーの誤り（5xx）のメッセージに、問い合わせ番号を付ける（画面設計書 S-04）。
+ * 利用者が問い合わせるときに伝えると、その操作のログを探せる。4xx は利用者が直せる誤りなので付けない。
+ */
+export function withRequestId(message: string, status: number, requestId: string | undefined) {
+  return status >= 500 && requestId ? `${message}（問い合わせ番号：${requestId}）` : message
+}
+
 async function toApiError(response: Response): Promise<ApiError> {
+  const requestId = response.headers.get('X-Request-Id') ?? undefined
   try {
     const problem = (await response.json()) as {
       code?: string
@@ -122,15 +143,22 @@ async function toApiError(response: Response): Promise<ApiError> {
     return new ApiError(
       response.status,
       problem.code ?? 'INTERNAL_ERROR',
-      problem.detail ?? NETWORK_ERROR_MESSAGE,
+      withRequestId(problem.detail ?? NETWORK_ERROR_MESSAGE, response.status, requestId),
       problem.errors ?? [],
+      requestId,
     )
   } catch {
     // 本文が JSON でない（プロキシの誤りなど）
     return new ApiError(
       response.status,
       'INTERNAL_ERROR',
-      'エラーが発生しました。時間をおいてもう一度お試しください',
+      withRequestId(
+        'エラーが発生しました。時間をおいてもう一度お試しください',
+        response.status,
+        requestId,
+      ),
+      [],
+      requestId,
     )
   }
 }

@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |---|---|
 | 文書番号 | 06 |
-| 版数 | 1.1 |
+| 版数 | 1.2 |
 | 作成日 | 2026-10-18 |
 | 作成者 | major182 |
 | 前提となる文書 | [01 要件定義書](01_requirements.md)、[03 DB 設計書](03_db-design.md)、[04 画面設計書](04_screen-design.md)、[05 API 設計書](05_api-design.md) |
@@ -163,6 +163,7 @@
 | UT-CO-03 | CSP のヘッダーの組み立て | 同値分割 | NF-SE-05 | `ContentSecurityPolicyTests` |
 | UT-CO-04 | ログの JSON：印（ALERT・CRITICAL・NOTICE・ほか・なし）× レベル（ERROR・WARN・INFO・DEBUG）の `status`、印が複数なら重いほう、例外のあり／なし、MDC・key-value を入れ子にする、null・空は出さない、数・文字・真偽以外は文字にする、1 件が 1 行 | デシジョンテーブル・同値分割 | ログ 07 2・3 章 | `DatadogJsonFormatterTests` |
 | UT-CO-05 | リクエストの ID：あり（そのまま使う）・なし・空・改行や空白・記号・64／65 文字（作り直す）。アクセスログの属性、ヘルスチェックは出さない、例外でもログを出し MDC を消す。利用者の ID はログインしているときだけ | 境界値・同値分割・エラー推測 | ログ 07 4 章 | `RequestLoggingFilterTests` |
+| UT-CO-06 | 問い合わせ番号：状態コード 499・500・599（境界値）× 番号のあり・なし・空、本文が JSON でない 5xx、4xx は付けないが `requestId` は持つ | 境界値・同値分割 | 画面 S-04、ログ 07 4 章 | frontend `api/client` |
 | IT-CO-01 | 開発用の画像の URL：正しい署名／違う署名／期限切れ（404） | 同値分割 | NF-SE-06 | `MediaControllerTests` |
 | IT-CO-02 | 画面の URL への直接のアクセスで `index.html`、`/api/` などは除く | 同値分割 | API 05 5.2 | `SpaConfigTests` |
 | IT-CO-03 | Swagger UI は開発だけ、API 仕様書の書き出し | 同値分割 | API 05 5.1 | `SwaggerUiTests`、`OpenApiSpecExportTests` |
@@ -229,3 +230,4 @@
 | 0.9 | 2026-10-18 | 画面の返信（UT-CM-04・05）とメンション（UT-MN-01〜04）を追加（#73） |
 | 1.0 | 2026-10-18 | 品質チェック（#76）：IT-CO-06（SQL の数）と E2E-06（返信・メンション）を追加。UT-CM-03・UT-MN-04 に観点を足し、カバレッジの今の値を更新 |
 | 1.1 | 2026-10-18 | 構造化ログ（#78）の UT-CO-04・05 と IT-CO-07 を追加 |
+| 1.2 | 2026-10-18 | 問い合わせ番号（#80）の UT-CO-06 を追加 |
