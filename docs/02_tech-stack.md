@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |---|---|
 | 文書番号 | 02 |
-| 版数 | 0.10 |
+| 版数 | 0.11 |
 | 作成日 | 2026-10-07 |
 | 作成者 | major182 |
 | 前提となる文書 | [01 要件定義書](01_requirements.md)、[01-1 機能一覧](01-1_feature-list.md) |
@@ -48,6 +48,7 @@ RaiseTimeline で使う技術を決め、**なぜそれを選んだか・なぜ�
 | lint | **ESLint** + typescript-eslint | 10.12.0 / 8.71.1 | |
 | 整形 | **Prettier** | 3.9.9 | |
 | テスト | **Vitest** + Testing Library | 5.0.3 / 16.3.3 | |
+| カバレッジ | **@vitest/coverage-v8** | 5.0.3 | Vitest と同じ版にそろえる必要がある（テスト仕様書 5 章） |
 
 ※1 TypeScript は 7.0.2 が出ているが、typescript-eslint 8.71.1 が 6.0 系までしか対応していないため、6.0 系の最新を使う。
 
@@ -65,6 +66,7 @@ RaiseTimeline で使う技術を決め、**なぜそれを選んだか・なぜ�
 | API の試し画面・仕様書 | **springdoc-openapi**（Swagger UI） | 3.1.1 | Swagger UI は開発（dev）だけ有効。本番では無効。API 仕様書（OpenAPI）はテストで書き出す（API 設計書 5.1）。3.1.1 は Spring Boot 4.1.0 を土台に作られており、4.1.1 で動くことを確かめた（2026-10-10） |
 | ビルド | **Gradle**（Kotlin DSL） | 9.7.1 | |
 | テスト | JUnit 5 + **Testcontainers** | Spring Boot が管理 | テストでも本物の PostgreSQL を使う |
+| カバレッジ | **JaCoCo** | 0.8.15 | Java 25 に対応した版。Gradle に同梱のプラグインで使う（テスト仕様書 5 章） |
 | 整形・lint | **Spotless**・**Checkstyle** | 8.10.4 / 14.3.0 | `./gradlew check` で整形・lint・テストをまとめて実行 |
 | API 仕様書の HTML | **Redocly CLI**（Redoc） | 2.63.0 | `node scripts/build-api-docs.mjs` で手元にだけ作る（npx で実行し、依存には入れない） |
 
@@ -230,3 +232,4 @@ XSS（他人が書いたスクリプトを画面で動かされる攻撃）が�
 | 0.8 | 2026-10-09 | S3 のときは CSP の img-src にバケットのオリジンを足すことを追記（4.3） |
 | 0.9 | 2026-10-10 | 開発用の Swagger UI として springdoc-openapi 3.1.1 を採用（3.2） |
 | 0.10 | 2026-10-14 | API 仕様書（OpenAPI）の自動生成と、HTML にする Redocly CLI 2.63.0 を追加（3.2） |
+| 0.11 | 2026-10-18 | カバレッジの計測に JaCoCo 0.8.15 と @vitest/coverage-v8 5.0.3 を追加 |
