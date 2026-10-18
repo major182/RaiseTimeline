@@ -24,8 +24,8 @@ export default defineConfig({
       include: ['src/**/*.{ts,tsx}'],
       // テストの道具と、起動するだけのファイルは対象外
       exclude: ['src/test/**', 'src/**/*.test.{ts,tsx}', 'src/main.tsx', 'src/**/*.d.ts'],
-      // しきい値は 2026-10-18 の値（命令 92%・分岐 85%）を少し下回る線
-      thresholds: { statements: 90, branches: 80 },
+      // しきい値は 2026-10-18 の値（命令 95%・分岐 88%。単体テストの追加後）を少し下回る線
+      thresholds: { statements: 93, branches: 85 },
       reporter: ['text-summary', 'html'],
     },
   },
