@@ -48,6 +48,19 @@ describe('投稿カード（画面設計書 4.1）', () => {
     expect(document.querySelector('article b')).toBeNull()
   })
 
+  it('UT-MN-03 本文の @ユーザー名 はプロフィールへのリンクにし、メールアドレスはリンクにしない', () => {
+    renderWithProviders(
+      <PostCard post={makePost({ body: '@sato_hana さん、連絡は tanaka@example.com へ' })} />,
+    )
+    const body = screen.getByTestId('post-body')
+    expect(within(body).getByRole('link', { name: '@sato_hana' })).toHaveAttribute(
+      'href',
+      '/users/sato_hana',
+    )
+    expect(within(body).getAllByRole('link')).toHaveLength(1)
+    expect(body).toHaveTextContent('@sato_hana さん、連絡は tanaka@example.com へ')
+  })
+
   it('インプレッション数・リツイートのボタンは置かない（BR-40、BR-41）', () => {
     renderWithProviders(<PostCard post={makePost()} />)
     expect(

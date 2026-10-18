@@ -10,6 +10,7 @@ export const QUERY_KEYS = {
   recommendations: ['users', 'recommendations'] as const,
   post: (postId: number) => ['posts', 'detail', postId] as const,
   comments: (postId: number) => ['comments', postId] as const,
+  replies: (commentId: number) => ['comments', 'replies', commentId] as const,
   likes: (postId: number) => ['users', 'likes', postId] as const,
   /** プロフィール。ユーザー名は大文字・小文字を区別しないので、小文字にそろえる。 */
   profile: (username: string) => ['users', 'profile', username.toLowerCase()] as const,

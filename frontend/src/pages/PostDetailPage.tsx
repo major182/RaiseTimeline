@@ -1,29 +1,21 @@
-import { Alert, Box, Button, Stack, TextField } from '@mui/material'
-import {
-  type InfiniteData,
-  useInfiniteQuery,
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from '@tanstack/react-query'
+import { Alert, Box, Button, Stack } from '@mui/material'
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { ApiError } from '../api/client'
 import { createComment, deleteComment, getComments, getPost } from '../api/posts'
-import type { Comment, CursorPage } from '../api/types'
+import type { Comment } from '../api/types'
 import { useMe } from '../auth/useMe'
-import { CharCounter } from '../components/CharCounter'
-import { CommentItem } from '../components/CommentItem'
+import { appendComment, updateComment } from '../commentCache'
+import { CommentInput } from '../components/CommentInput'
+import { CommentThread, type ReplyTarget } from '../components/CommentThread'
 import { LoadMore } from '../components/LoadMore'
 import { EmptyMessage, PageColumn } from '../components/PageColumn'
 import { PostCard } from '../components/PostCard'
 import { PostListSkeleton } from '../components/PostListSkeleton'
 import { useNotify } from '../components/SnackbarProvider'
 import { UserAvatar } from '../components/UserAvatar'
-import { BODY_MAX_LENGTH, countChars } from '../postLength'
 import { QUERY_KEYS, updatePost } from '../queryCache'
-
-type CommentPages = InfiniteData<CursorPage<Comment>, string | null>
 
 /** 投稿の詳細（画面設計書 5.7 SC-04）。投稿・コメントの入力欄・コメントの一覧。 */
 export function PostDetailPage() {
@@ -80,22 +72,12 @@ function CommentForm({ postId }: { postId: number }) {
   const { data: me } = useMe()
   const [body, setBody] = useState('')
   const [error, setError] = useState<string>()
-  const over = countChars(body) > BODY_MAX_LENGTH
 
   const mutation = useMutation({
     mutationFn: () => createComment(postId, body),
     onSuccess: (comment) => {
       setBody('')
-      // 一覧を最後まで読み終えているときだけ、最後に足す（途中なら、続きを読んだときにサーバーから届く）
-      const key = QUERY_KEYS.comments(postId)
-      const data = queryClient.getQueryData<CommentPages>(key)
-      const last = data?.pages.at(-1)
-      if (data && last && last.nextCursor === null) {
-        queryClient.setQueryData<CommentPages>(key, {
-          ...data,
-          pages: [...data.pages.slice(0, -1), { ...last, items: [...last.items, comment] }],
-        })
-      }
+      appendComment(queryClient, QUERY_KEYS.comments(postId), comment)
       updatePost(queryClient, postId, (p) => ({ ...p, commentCount: p.commentCount + 1 }))
     },
     onError: (e) => {
@@ -107,59 +89,36 @@ function CommentForm({ postId }: { postId: number }) {
   })
 
   return (
-    <Box
-      component="form"
-      aria-label="コメントの入力"
-      onSubmit={(e) => {
-        e.preventDefault()
-        mutation.mutate()
-      }}
+    <Stack
+      direction="row"
+      spacing={1.5}
       sx={{ px: 2, py: 1.5, borderBottom: 1, borderColor: 'divider' }}
     >
-      <Stack direction="row" spacing={1.5}>
-        {me && <UserAvatar user={me} />}
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <TextField
-            value={body}
-            onChange={(e) => {
-              setBody(e.target.value)
-              setError(undefined)
-            }}
-            placeholder="コメントを書く"
-            multiline
-            fullWidth
-            variant="standard"
-            error={Boolean(error)}
-            helperText={error}
-            slotProps={{ htmlInput: { 'aria-label': 'コメント' } }}
-          />
-          <Stack
-            direction="row"
-            spacing={2}
-            sx={{ alignItems: 'center', justifyContent: 'flex-end', mt: 1 }}
-          >
-            {body !== '' && <CharCounter text={body} max={BODY_MAX_LENGTH} />}
-            <Button
-              type="submit"
-              variant="contained"
-              // 空か空白だけ・280 文字を超えたら押せない（サーバーと同じ）
-              disabled={body.trim() === '' || over || mutation.isPending}
-              sx={{ borderRadius: 5 }}
-            >
-              コメントする
-            </Button>
-          </Stack>
-        </Box>
-      </Stack>
-    </Box>
+      {me && <UserAvatar user={me} />}
+      <CommentInput
+        value={body}
+        onChange={(value) => {
+          setBody(value)
+          setError(undefined)
+        }}
+        formLabel="コメントの入力"
+        label="コメント"
+        placeholder="コメントを書く"
+        submitLabel="コメントする"
+        submitting={mutation.isPending}
+        onSubmit={() => mutation.mutate()}
+        error={error}
+      />
+    </Stack>
   )
 }
 
-/** コメントの一覧（F-CM-02・04）。古い順に 20 件ずつ。 */
+/** コメントの一覧（F-CM-02・04〜06）。古い順に 20 件ずつ。返信の入力欄は同時に 1 つだけ開く。 */
 function CommentList({ postId }: { postId: number }) {
   const queryClient = useQueryClient()
   const notify = useNotify()
   const key = QUERY_KEYS.comments(postId)
+  const [replyTarget, setReplyTarget] = useState<ReplyTarget | null>(null)
   const query = useInfiniteQuery({
     queryKey: key,
     queryFn: ({ pageParam }) => getComments(postId, pageParam),
@@ -170,20 +129,13 @@ function CommentList({ postId }: { postId: number }) {
   const deletion = useMutation({
     mutationFn: (comment: Comment) => deleteComment(comment.id),
     onSuccess: (_, comment) => {
-      queryClient.setQueryData<CommentPages>(key, (data) =>
-        data
-          ? {
-              ...data,
-              pages: data.pages.map((p) => ({
-                ...p,
-                items: p.items.filter((c) => c.id !== comment.id),
-              })),
-            }
-          : data,
-      )
+      // コメントを消すと返信も消える（BR-38）
+      updateComment(queryClient, key, comment.id, () => null)
+      queryClient.removeQueries({ queryKey: QUERY_KEYS.replies(comment.id) })
+      if (replyTarget?.rootId === comment.id) setReplyTarget(null)
       updatePost(queryClient, postId, (p) => ({
         ...p,
-        commentCount: Math.max(0, p.commentCount - 1),
+        commentCount: Math.max(0, p.commentCount - 1 - comment.replyCount),
       }))
       notify('コメントを削除しました') // I-05
     },
@@ -203,7 +155,15 @@ function CommentList({ postId }: { postId: number }) {
     <>
       <Box component="section" aria-label="コメントの一覧">
         {comments.map((comment) => (
-          <CommentItem key={comment.id} comment={comment} onDelete={(c) => deletion.mutate(c)} />
+          <CommentThread
+            key={comment.id}
+            postId={postId}
+            comment={comment}
+            replyTarget={replyTarget?.rootId === comment.id ? replyTarget : null}
+            onReply={setReplyTarget}
+            onCloseReply={() => setReplyTarget(null)}
+            onDelete={(c) => deletion.mutate(c)}
+          />
         ))}
       </Box>
       {query.hasNextPage && (

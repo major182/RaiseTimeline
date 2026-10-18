@@ -24,13 +24,19 @@ export function deletePost(postId: number): Promise<void> {
   return request('DELETE', `/api/posts/${postId}`)
 }
 
-/** コメントの一覧（古い順）。 */
+/** コメントの一覧（古い順。返信は含めない）。 */
 export function getComments(postId: number, cursor: string | null): Promise<CursorPage<Comment>> {
   return request('GET', withCursor(`/api/posts/${postId}/comments`, cursor))
 }
 
-export function createComment(postId: number, body: string): Promise<Comment> {
-  return request('POST', `/api/posts/${postId}/comments`, { body })
+/** 返信の一覧（古い順）。 */
+export function getReplies(commentId: number, cursor: string | null): Promise<CursorPage<Comment>> {
+  return request('GET', withCursor(`/api/comments/${commentId}/replies`, cursor))
+}
+
+/** コメントする。返信なら parentId に返信先のコメントの ID を渡す（BR-37）。 */
+export function createComment(postId: number, body: string, parentId?: number): Promise<Comment> {
+  return request('POST', `/api/posts/${postId}/comments`, { body, parentId })
 }
 
 export function deleteComment(commentId: number): Promise<void> {
