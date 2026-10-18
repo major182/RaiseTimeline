@@ -10,6 +10,7 @@ import com.raisetimeline.TestUsers.TestUser;
 import com.raisetimeline.TestcontainersConfiguration;
 import com.raisetimeline.post.TestPosts;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -19,6 +20,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 
 /** コメントの削除と、消せる人（F-CM-04、BR-13・35）。 */
+@DisplayName("IT-CM-01 コメントの削除")
 @SpringBootTest
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)

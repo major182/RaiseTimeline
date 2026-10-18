@@ -3,6 +3,7 @@ package com.raisetimeline;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -10,6 +11,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Transactional;
 
+@DisplayName("IT-CO-05 起動・マイグレーション・DB の制約")
 @SpringBootTest
 @Import(TestcontainersConfiguration.class)
 @Transactional // テストごとに巻き戻し、他のテストに登録したデータを残さない

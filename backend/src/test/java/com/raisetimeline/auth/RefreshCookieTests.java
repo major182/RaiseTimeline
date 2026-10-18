@@ -7,6 +7,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -18,6 +19,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
  * リフレッシュトークンの Cookie の属性（NF-SE-02）。
  * MockMvc では Cookie の属性が再現されないため、実際にサーバーを起動して HTTP で確かめる。
  */
+@DisplayName("IT-AU-03 リフレッシュトークンの Cookie")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Import(TestcontainersConfiguration.class)
 class RefreshCookieTests {

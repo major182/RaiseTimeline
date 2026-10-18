@@ -5,6 +5,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.nio.charset.StandardCharsets;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -18,6 +19,7 @@ import org.springframework.test.web.servlet.MockMvc;
  * 開発用のテストデータ（db/dev-data。DB 設計書 7 章）。開発のときと同じく Flyway に読み込ませ、中身を確かめる。
  * 設定が違うので、ほかのテストとは別の DB（コンテナ）で動く。テストの中でデータを消さないこと。
  */
+@DisplayName("IT-CO-05 開発用のテストデータ")
 @SpringBootTest(properties = "spring.flyway.locations=classpath:db/migration,classpath:db/dev-data")
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)

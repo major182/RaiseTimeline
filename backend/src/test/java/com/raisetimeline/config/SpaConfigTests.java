@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.raisetimeline.TestUsers;
 import com.raisetimeline.TestUsers.TestUser;
 import com.raisetimeline.TestcontainersConfiguration;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -22,6 +23,7 @@ import org.springframework.test.web.servlet.MockMvc;
  * 画面の配信（API 設計書 5 章）。画面の URL を直接開いたら index.html を返し、API などは 404 のままにする。
  * テスト用の画面のファイルは src/test/resources/static に置いてある。
  */
+@DisplayName("IT-CO-02 画面の URL への直接のアクセス")
 @SpringBootTest
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)

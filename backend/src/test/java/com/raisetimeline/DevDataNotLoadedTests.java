@@ -2,6 +2,7 @@ package com.raisetimeline;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -9,6 +10,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 /** 開発用のテストデータは、開発のプロファイル以外（本番・テスト）では読み込まない（DB 設計書 7 章）。 */
+@DisplayName("IT-CO-05 開発用のテストデータを本番で入れない")
 @SpringBootTest
 @Import(TestcontainersConfiguration.class)
 class DevDataNotLoadedTests {

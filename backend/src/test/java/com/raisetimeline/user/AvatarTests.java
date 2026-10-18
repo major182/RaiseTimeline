@@ -14,6 +14,7 @@ import com.raisetimeline.image.ImageUploads;
 import com.raisetimeline.image.TestImages;
 import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -27,6 +28,7 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
 /** アイコンの変更（F-US-02、BR-24、API 設計書 4.2）。 */
+@DisplayName("IT-US-02 アイコンの変更")
 @SpringBootTest
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)

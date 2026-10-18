@@ -4,10 +4,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.raisetimeline.ApiClient;
 import com.raisetimeline.TestUsers;
 import com.raisetimeline.TestUsers.TestUser;
 import com.raisetimeline.TestcontainersConfiguration;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -17,6 +19,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 
 /** 投稿の編集（F-PO-06、BR-12・15・16、API 設計書 4.4）。 */
+@DisplayName("IT-PO-01・IT-PO-04 投稿の編集")
 @SpringBootTest
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)
@@ -61,6 +64,28 @@ class UpdatePostTests {
         alice.client().patch("/api/posts/" + postId, "{\"body\":\"直した本文\"}");
         String after = jdbc.queryForObject("SELECT created_at::text FROM posts WHERE id = ?", String.class, postId);
         assertThat(after).isEqualTo(before);
+    }
+
+    @Test
+    void 編集してもいいねとコメントはそのまま残る() throws Exception {
+        bob.client().put("/api/posts/" + postId + "/like", "").andExpect(status().isOk());
+        bob.client()
+                .post("/api/posts/" + postId + "/comments", "{\"body\":\"いいですね\"}")
+                .andExpect(status().isCreated());
+
+        alice.client()
+                .patch("/api/posts/" + postId, "{\"body\":\"直した本文\"}")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.likeCount").value(1))
+                .andExpect(jsonPath("$.commentCount").value(1));
+    }
+
+    @Test
+    void ログインしていなければ401で変えない() throws Exception {
+        new ApiClient(mvc)
+                .patch("/api/posts/" + postId, "{\"body\":\"乗っ取り\"}")
+                .andExpect(status().isUnauthorized());
+        assertThat(bodyInDb()).isEqualTo("元の本文");
     }
 
     @Test
