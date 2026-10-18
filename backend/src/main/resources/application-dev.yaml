@@ -20,3 +20,6 @@ logging:
   structured:
     format:
       console: ""
+  # 問い合わせ番号（request_id）で探せるよう、各行に付ける
+  pattern:
+    correlation: "[%X{request_id:-}] "
