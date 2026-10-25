@@ -21,6 +21,3 @@ Thumbs.db
 
 # API 仕様書の HTML（node scripts/build-api-docs.mjs で作る。手元で見るだけで、公開しない）
 docs/api/local/
-
-# 理解度チェック課題の Claude Code 版の回答（手元で見るだけで、公開しない）
-docs/*_ClaudeCode版.md
