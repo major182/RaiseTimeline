@@ -1,5 +1,7 @@
 // 性能テストを手元で実行する（性能テスト設計書 7 章）。毎回の CI では動かさず、必要なときに実行する
 //   node scripts/perf.ts smoke              PT-01（1 人で 1 分）
+//   node scripts/perf.ts load|stress|spike|soak  PT-02〜05
+//   node scripts/perf.ts load --short       時間を 1/10 に縮める（シナリオの動作確認用。結果は記録に使わない）
 //   node scripts/perf.ts smoke --keep-data  終わってもテストデータと DB を残す（調査用）
 //   node scripts/perf.ts cleanup            残したテストデータと DB を消す
 // 流れ：性能テスト用の DB（compose の db-perf）を起動 → API を本番に近い設定で起動（テーブルを作る）→ テストデータを入れる
@@ -13,7 +15,14 @@ import {
   type SpawnSyncReturns,
 } from 'node:child_process'
 import { randomBytes } from 'node:crypto'
-import { createWriteStream, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import {
+  appendFileSync,
+  createWriteStream,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -26,7 +35,7 @@ const K6_CONTAINER = 'raisetimeline-perf-k6'
 const API_PORT = 8092
 const DB_PORT = 5434
 const MEDIA_DIR = path.join(root, 'backend', 'build', 'perf-media')
-const SCENARIOS = ['smoke'] as const
+const SCENARIOS = ['smoke', 'load', 'stress', 'spike', 'soak'] as const
 
 type Scenario = (typeof SCENARIOS)[number]
 type Command = Scenario | 'cleanup'
@@ -38,10 +47,11 @@ function isCommand(value: string | undefined): value is Command {
 const args = process.argv.slice(2)
 const command = args.find((a) => !a.startsWith('--'))
 const keepData = args.includes('--keep-data')
+const short = args.includes('--short')
 
 if (!isCommand(command)) {
   console.error(
-    `使い方: node scripts/perf.ts <${[...SCENARIOS, 'cleanup'].join('|')}> [--keep-data]`,
+    `使い方: node scripts/perf.ts <${[...SCENARIOS, 'cleanup'].join('|')}> [--keep-data] [--short]`,
   )
   process.exit(2)
 }
@@ -90,6 +100,74 @@ function psql(file: string): void {
     input: readFileSync(path.join(root, file)),
     stdio: ['pipe', 'inherit', 'inherit'],
   })
+}
+
+function psqlCommand(sql: string): string {
+  const result = spawnSync('docker', [...PSQL, '-v', 'ON_ERROR_STOP=1', '-c', sql], {
+    cwd: root,
+    encoding: 'utf8',
+  })
+  if (result.status !== 0) {
+    throw new Error(`SQL が失敗しました: ${result.stderr}`)
+  }
+  return result.stdout
+}
+
+// 時間のかかる k6 は、実行中にサーバーの状態を記録できるよう、待つ間も処理を止めずに動かす
+function runAsync(cmd: string, cmdArgs: string[]): Promise<number> {
+  return new Promise((resolve) => {
+    const child = spawn(cmd, cmdArgs, { cwd: root, stdio: 'inherit' })
+    child.on('exit', (code) => resolve(code ?? 1))
+    child.on('error', () => resolve(1))
+  })
+}
+
+// 実行中に記録するサーバーの状態（Actuator の metrics。perf プロファイルだけ公開）
+const SAMPLED_METRICS: { key: string; name: string; tag?: string }[] = [
+  { key: 'dbActive', name: 'hikaricp.connections.active' },
+  { key: 'dbPending', name: 'hikaricp.connections.pending' },
+  { key: 'dbMax', name: 'hikaricp.connections.max' },
+  { key: 'heapUsedMb', name: 'jvm.memory.used', tag: 'area:heap' },
+  { key: 'threads', name: 'jvm.threads.live' },
+  { key: 'cpu', name: 'process.cpu.usage' },
+]
+
+async function sampleMetrics(): Promise<Record<string, number | string>> {
+  const sample: Record<string, number | string> = { at: new Date().toISOString() }
+  for (const metric of SAMPLED_METRICS) {
+    const query = metric.tag ? `?tag=${metric.tag}` : ''
+    const res = await fetch(`http://localhost:${API_PORT}/actuator/metrics/${metric.name}${query}`)
+    if (!res.ok) continue
+    const body = (await res.json()) as { measurements: { value: number }[] }
+    const value = body.measurements[0]?.value ?? 0
+    sample[metric.key] = metric.key === 'heapUsedMb' ? Math.round(value / 1024 ** 2) : value
+  }
+  return sample
+}
+
+// 15 秒ごとに 1 行の JSON を追記する（長時間のシナリオで、メモリ・DB の接続の増え方を見る）
+function startMetricsSampler(file: string): NodeJS.Timeout {
+  return setInterval(() => {
+    sampleMetrics()
+      .then((sample) => appendFileSync(file, `${JSON.stringify(sample)}\n`))
+      .catch(() => {
+        // API が止まっていれば記録しない（k6 の結果に失敗が出る）
+      })
+  }, 15_000)
+}
+
+// 合計の時間が長い SQL の上位 20 件（遅い API の原因を探す入り口。性能テスト設計書 7 章）
+function saveSlowQueries(file: string): void {
+  const sql = `SELECT calls, round(total_exec_time) AS total_ms, round(mean_exec_time::numeric, 2) AS mean_ms,
+                      round(max_exec_time::numeric, 2) AS max_ms, rows, left(regexp_replace(query, '\\s+', ' ', 'g'), 300) AS query
+               FROM pg_stat_statements
+               WHERE dbid = (SELECT oid FROM pg_database WHERE datname = current_database())
+               ORDER BY total_exec_time DESC LIMIT 20`
+  try {
+    writeFileSync(file, psqlCommand(sql))
+  } catch (error) {
+    console.error(`遅い SQL を保存できませんでした: ${message(error)}`)
+  }
 }
 
 function dbVolumes(): string[] {
@@ -228,27 +306,33 @@ async function runScenario(scenario: Scenario): Promise<number> {
 
     console.log('\n=== テストデータを投入 ===')
     psql('perf/seed/seed.sql')
+    // データの投入の SQL を集計から外し、シナリオの SQL だけを数える
+    psqlCommand(
+      'CREATE EXTENSION IF NOT EXISTS pg_stat_statements; SELECT pg_stat_statements_reset();',
+    )
 
     if (interrupted) throw new Error('中断しました')
-    console.log(`\n=== k6 でシナリオ ${scenario} を実行 ===`)
-    // prettier-ignore
-    const k6 = run(
-      'docker',
-      [
-        'run', '--rm', '--name', K6_CONTAINER,
-        // Linux でも host.docker.internal で手元の API に届くようにする
-        '--add-host', 'host.docker.internal:host-gateway',
-        '-v', `${path.join(root, 'perf', 'k6')}:/scripts:ro`,
-        '-v', `${resultDir}:/results`,
-        '-e', `BASE_URL=http://host.docker.internal:${API_PORT}`,
-        K6_IMAGE, 'run',
-        '--summary-export', '/results/summary.json',
-        `/scripts/scenarios/${scenario}.ts`,
-      ],
-      { allowFailure: true },
+    console.log(
+      `\n=== k6 でシナリオ ${scenario} を実行${short ? '（--short：時間を 1/10 に縮める）' : ''} ===`,
     )
+    const sampler = startMetricsSampler(path.join(resultDir, 'metrics.jsonl'))
+    // prettier-ignore
+    const k6Status = await runAsync('docker', [
+      'run', '--rm', '--name', K6_CONTAINER,
+      // Linux でも host.docker.internal で手元の API に届くようにする
+      '--add-host', 'host.docker.internal:host-gateway',
+      '-v', `${path.join(root, 'perf', 'k6')}:/scripts:ro`,
+      '-v', `${resultDir}:/results`,
+      '-e', `BASE_URL=http://host.docker.internal:${API_PORT}`,
+      '-e', `TIME_SCALE=${short ? 0.1 : 1}`,
+      K6_IMAGE, 'run',
+      '--summary-export', '/results/summary.json',
+      `/scripts/scenarios/${scenario}.ts`,
+    ])
+    clearInterval(sampler)
+    saveSlowQueries(path.join(resultDir, 'slow-queries.txt'))
     // k6 はしきい値を超えると 99 で終わる
-    exitCode = k6.status ?? 1
+    exitCode = k6Status
     console.log(
       exitCode === 0
         ? '\nしきい値をすべて満たしました'

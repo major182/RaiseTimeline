@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |---|---|
 | 文書番号 | 06 |
-| 版数 | 1.3 |
+| 版数 | 1.4 |
 | 作成日 | 2026-10-18 |
 | 作成者 | major182 |
 | 前提となる文書 | [01 要件定義書](01_requirements.md)、[03 DB 設計書](03_db-design.md)、[04 画面設計書](04_screen-design.md)、[05 API 設計書](05_api-design.md) |
@@ -193,7 +193,11 @@
 | ID | 種類 | 確かめること | 要件 | 場所 |
 |---|---|---|---|---|
 | PT-01 | smoke | 1 人で主な API を一通り呼び、しきい値を満たす | NF-PE-01 | `perf/k6/scenarios/smoke.ts` |
-| PT-02〜08 | load・stress・spike・soak・web・browser・hybrid | 08 の 3 章 | NF-PE-01 | 予定 |
+| PT-02 | load | 想定ピーク（50 人・10 分）でしきい値を満たす | NF-PE-01 | `perf/k6/scenarios/load.ts` |
+| PT-03 | stress | 50→300 人で限界点（しきい値を超える段階）を記録する | NF-PE-01 | `perf/k6/scenarios/stress.ts` |
+| PT-04 | spike | 200 人への急増で失敗が 5% 未満、戻ったあとはしきい値を満たす | NF-PE-01 | `perf/k6/scenarios/spike.ts` |
+| PT-05 | soak | 30 人・1 時間で応答時間・メモリ・DB の接続が悪化しない | NF-PE-01 | `perf/k6/scenarios/soak.ts` |
+| PT-06〜08 | web・browser・hybrid | 08 の 3 章 | NF-PE-01 | 予定 |
 
 ---
 
@@ -243,3 +247,4 @@
 | 1.1 | 2026-10-18 | 構造化ログ（#78）の UT-CO-04・05 と IT-CO-07 を追加 |
 | 1.2 | 2026-10-18 | 問い合わせ番号（#80）の UT-CO-06 を追加 |
 | 1.3 | 2026-10-26 | 性能テストの区分（1 章）・PT-01（4.10）・実行の方法（6 章）を追加（#84） |
+| 1.4 | 2026-10-26 | 性能テストの PT-02〜05 を追加（#86） |
