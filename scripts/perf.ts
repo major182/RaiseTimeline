@@ -1,7 +1,7 @@
 // 性能テストを手元で実行する（性能テスト設計書 7 章）。毎回の CI では動かさず、必要なときに実行する
 //   node scripts/perf.ts smoke              PT-01（1 人で 1 分）
 //   node scripts/perf.ts load|stress|spike|soak  PT-02〜05
-//   node scripts/perf.ts load --short       時間を 1/10 に縮める（シナリオの動作確認用。結果は記録に使わない）
+//   node scripts/perf.ts load --short       時間を 1/10 に縮める。スクリプトが動くかの確認だけで、性能の合否には使わない
 //   node scripts/perf.ts smoke --keep-data  終わってもテストデータと DB を残す（調査用）
 //   node scripts/perf.ts cleanup            残したテストデータと DB を消す
 // 流れ：性能テスト用の DB（compose の db-perf）を起動 → API を本番に近い設定で起動（テーブルを作る）→ テストデータを入れる
@@ -279,6 +279,8 @@ function recordEnvironment(file: string, scenario: Scenario): void {
     cpuCount: os.cpus().length,
     memoryGb: Math.round(os.totalmem() / 1024 ** 3),
     k6: K6_IMAGE,
+    // true なら時間を縮めた動作確認。性能の合否・記録には使わない
+    short,
   }
   writeFileSync(file, JSON.stringify(environment, null, 2))
 }
@@ -338,6 +340,11 @@ async function runScenario(scenario: Scenario): Promise<number> {
         ? '\nしきい値をすべて満たしました'
         : `\nしきい値を満たさなかったか、実行に失敗しました（終了コード ${exitCode}）`,
     )
+    if (short) {
+      console.log(
+        '--short は動作確認です。時間が短く負荷のたまり方が本来と違うため、性能の合否・記録には使わないでください',
+      )
+    }
     console.log(`結果: ${path.relative(root, resultDir)}`)
   } catch (error) {
     console.error(`\n${message(error)}`)
