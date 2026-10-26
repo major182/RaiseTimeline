@@ -43,6 +43,22 @@ jobs:
       - run: npm run check
       - run: npm run build
 
+  # 性能テストのシナリオ（k6・TypeScript）の型と整形だけを確かめる。性能テストそのものは CI では動かさない（性能テスト設計書 7 章）
+  perf:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: perf
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: perf/package-lock.json
+      - run: npm ci
+      - run: npm run check
+
   # E2E テスト（テスト仕様書 1 章）。E2E 用の DB を compose で起動し、Playwright が API と画面を起動して操作する
   e2e:
     runs-on: ubuntu-latest

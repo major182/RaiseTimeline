@@ -2,6 +2,7 @@
 //   node scripts/check.mjs
 // backend：整形（Spotless）・lint（Checkstyle）・テスト・カバレッジ（JaCoCo）。テストは Docker を使うので、先に Docker Desktop を起動しておく
 // frontend：型・lint（ESLint）・整形（Prettier）・テストとカバレッジ（Vitest）
+// perf：性能テストのシナリオ（k6）の型・整形。性能テストそのものは動かさない（node scripts/perf.mjs で手で実行する）
 import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
@@ -12,6 +13,7 @@ const isWindows = process.platform === 'win32'
 const steps = [
   { name: 'backend', cwd: 'backend', command: isWindows ? path.join(root, 'backend', 'gradlew.bat') : './gradlew', args: ['check'] },
   { name: 'frontend', cwd: 'frontend', command: 'npm', args: ['run', 'check'] },
+  { name: 'perf', cwd: 'perf', command: 'npm', args: ['run', 'check'] },
 ]
 
 for (const step of steps) {

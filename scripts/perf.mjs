@@ -201,7 +201,7 @@ async function main() {
         '-e', `BASE_URL=http://host.docker.internal:${API_PORT}`,
         K6_IMAGE, 'run',
         '--summary-export', '/results/summary.json',
-        `/scripts/scenarios/${scenario}.js`,
+        `/scripts/scenarios/${scenario}.ts`,
       ],
       { allowFailure: true },
     )
