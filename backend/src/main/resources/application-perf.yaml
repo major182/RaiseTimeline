@@ -1,0 +1,8 @@
+# 性能テスト用の設定（性能テスト設計書 7 章）。node scripts/perf.ts が、本番の設定にこれを重ねて起動する
+# 実行中のサーバーの状態（DB の接続・JVM のメモリ・応答時間）を記録するため、metrics だけを公開する。
+# 本番・開発では公開しない（application.yaml は health だけ）
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics

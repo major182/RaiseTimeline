@@ -1,7 +1,7 @@
 // 利用者の操作（API の呼び出し）。シナリオはこれらを組み合わせる
 // 応答の型は使う項目だけを書く（全体は docs/api/openapi.yaml）
 import http, { type RefinedResponse, type ResponseType } from 'k6/http'
-import { check } from 'k6'
+import { check, fail } from 'k6'
 import { BASE_URL } from './config.ts'
 import { authParams } from './auth.ts'
 
@@ -33,7 +33,11 @@ export interface CursorPage<T> {
 export type Tab = 'all' | 'following'
 
 function ok<T>(res: RefinedResponse<ResponseType | undefined>, label: string): T {
-  check(res, { [`${label} が 2xx`]: (r) => r.status >= 200 && r.status < 300 })
+  const passed = check(res, { [`${label} が 2xx`]: (r) => r.status >= 200 && r.status < 300 })
+  if (!passed) {
+    // 失敗（接続の失敗を含む）は check の失敗として数え、この回の繰り返しを打ち切る（応答の本文がないため続けられない）
+    fail(`${label} が失敗しました（${res.status} ${res.error}）`)
+  }
   return res.json() as T
 }
 
