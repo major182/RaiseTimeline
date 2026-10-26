@@ -1,0 +1,17 @@
+{
+  "name": "scripts",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "check": "npm run typecheck && npm run format:check"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.1",
+    "prettier": "3.9.9",
+    "typescript": "6.0.3"
+  }
+}

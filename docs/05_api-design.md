@@ -269,7 +269,7 @@ API 仕様書には載せない（Spring Boot の機能か、開発環境だけ�
 | 作り方 | backend のテスト（`OpenApiSpecExportTests`）が `/v3/api-docs.yaml` を取り出して書き出す。`./gradlew test`（`check`）のたびに書き直される |
 | 更新忘れの検出 | CI がテストのあとに `git diff --exit-code` で確かめる。API を変えたら、書き出された `openapi.yaml` も一緒にコミットする |
 | 説明の書き方 | Controller に `@Tag`・`@Operation`、成功の状態コードが 200 でなければ `@ApiResponse`、その API に特有のエラーは `@ApiErrors`（401・500 は自動で足す）。ログインの要らない API は `@SecurityRequirements`。DTO の説明・`null` になる項目は `@Schema`。`@CodePointLength` は仕様書に出ないので `@Schema(maxLength)` も書く |
-| 読みやすい HTML | `node scripts/build-api-docs.mjs` で Redoc の HTML（`docs/api/local/index.html`）を作る。**手元で見るだけで、Git には入れない**（`.gitignore`） |
+| 読みやすい HTML | `node scripts/build-api-docs.ts` で Redoc の HTML（`docs/api/local/index.html`）を作る。**手元で見るだけで、Git には入れない**（`.gitignore`） |
 
 ### 5.2 そのほか
 

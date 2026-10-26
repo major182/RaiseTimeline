@@ -41,7 +41,7 @@
 1. Issue を作る（本文：`## 目的` / `## やること`（チェックリスト）/ `## 完了の条件`）
 2. `git switch main && git pull` → 最新の `main` からブランチを切る
 3. 実装してこまめにコミット
-4. **チェックを通す**：`node scripts/check.mjs`（backend の整形・lint・テスト・カバレッジと、frontend の型・lint・整形・テスト・カバレッジをまとめて実行。カバレッジがしきい値を下回っても失敗する（テスト仕様書 5 章）。backend のテストは Docker を使うので、Docker Desktop を起動しておく）。CI でも同じチェックが動く。整形のずれは backend は `./gradlew spotlessApply`、frontend は `npm run format` で自動で直せる。画面・API の流れを変えたときは、`cd frontend; npm run e2e`（E2E テスト。テスト仕様書 6 章）も通す（CI でも別のジョブで動く）
+4. **チェックを通す**：`node scripts/check.ts`（backend の整形・lint・テスト・カバレッジと、frontend の型・lint・整形・テスト・カバレッジをまとめて実行。カバレッジがしきい値を下回っても失敗する（テスト仕様書 5 章）。backend のテストは Docker を使うので、Docker Desktop を起動しておく）。CI でも同じチェックが動く。整形のずれは backend は `./gradlew spotlessApply`、frontend は `npm run format` で自動で直せる。画面・API の流れを変えたときは、`cd frontend; npm run e2e`（E2E テスト。テスト仕様書 6 章）も通す（CI でも別のジョブで動く）
 5. **プッシュ前に `git fetch`** — `main` が動いていないか、PR がマージ済みでないかを確かめる
 6. プッシュして PR を作る。本文に `Closes #<Issue番号>`
 7. **PR の状態と CI の結果を確認する（1.5）**
@@ -157,7 +157,7 @@ cd frontend; npm install; npm run dev     # 画面（http://localhost:5173/）
 
 - `bootRun`（開発のプロファイル）で起動すると、テストデータ（`db/dev-data/`。DB 設計書 7 章）が入る。`sato@example.com`・`suzuki@example.com`・`tanaka@example.com`、パスワードはどれも `pass1234`。本番・テストには入らない
 - `bootRun` のときだけ、Swagger UI（http://localhost:8080/swagger-ui.html）から API を試せる。ログインの要る API は、ログインの応答の `accessToken` を「Authorize」に入れる
-- API を変えたら、`./gradlew test` が書き直す `docs/api/openapi.yaml` も一緒にコミットする（CI が更新忘れを止める）。説明のアノテーションの書き方は API 設計書 5.1。`node scripts/build-api-docs.mjs` で手元に HTML を作れる（Git には入れない）
+- API を変えたら、`./gradlew test` が書き直す `docs/api/openapi.yaml` も一緒にコミットする（CI が更新忘れを止める）。説明のアノテーションの書き方は API 設計書 5.1。`node scripts/build-api-docs.ts` で手元に HTML を作れる（Git には入れない）
 
 ### 4.2 注意
 

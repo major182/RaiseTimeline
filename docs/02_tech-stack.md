@@ -69,7 +69,7 @@ RaiseTimeline で使う技術を決め、**なぜそれを選んだか・なぜ�
 | テスト | JUnit 5 + **Testcontainers** | Spring Boot が管理 | テストでも本物の PostgreSQL を使う |
 | カバレッジ | **JaCoCo** | 0.8.15 | Java 25 に対応した版。Gradle に同梱のプラグインで使う（テスト仕様書 5 章） |
 | 整形・lint | **Spotless**・**Checkstyle** | 8.10.4 / 14.3.0 | `./gradlew check` で整形・lint・テストをまとめて実行 |
-| API 仕様書の HTML | **Redocly CLI**（Redoc） | 2.63.0 | `node scripts/build-api-docs.mjs` で手元にだけ作る（npx で実行し、依存には入れない） |
+| API 仕様書の HTML | **Redocly CLI**（Redoc） | 2.63.0 | `node scripts/build-api-docs.ts` で手元にだけ作る（npx で実行し、依存には入れない） |
 
 ※2 手元では Gradle が Azul Zulu の JDK を、CI（GitHub Actions）では Temurin の JDK を使う。どちらも同じ OpenJDK 25（25.0.4.1）。配布元を Temurin に固定しようとしたが、2026-10-09 時点で Gradle のダウンロード元（foojay）に Temurin の JDK が登録されておらず、取得できなかった
 
