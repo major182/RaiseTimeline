@@ -1,0 +1,20 @@
+{
+  // scripts の型チェック（npm run typecheck）。Node.js 24 は .ts の型を取り除いてそのまま実行するので、JS は出力しない。
+  // erasableSyntaxOnly：取り除くだけで動く書き方（enum などを使わない）に限る
+  "compilerOptions": {
+    "target": "ES2024",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "types": ["node"],
+    "lib": ["ES2024"],
+    "strict": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "erasableSyntaxOnly": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "skipLibCheck": true
+  },
+  "include": ["*.ts"]
+}

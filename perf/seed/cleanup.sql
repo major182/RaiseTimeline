@@ -5,7 +5,7 @@
 -- 条件なしの DELETE・TRUNCATE は使わない。
 --
 -- 画像のファイル（post_images.storage_key の指す先）はここでは消さない。
--- 保存先の接頭辞（手元は perf 用のフォルダ、S3 は perf/）ごと、scripts/perf.mjs が消す。
+-- 保存先の接頭辞（手元は perf 用のフォルダ、S3 は perf/）ごと、scripts/perf.ts が消す。
 
 \set ON_ERROR_STOP on
 

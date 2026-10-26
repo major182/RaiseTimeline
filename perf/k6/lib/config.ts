@@ -1,5 +1,5 @@
 // 性能テストの共通の設定（性能テスト設計書 3 章）。値は環境変数で上書きできる
-//   BASE_URL   対象の API（既定は scripts/perf.mjs が起動する API）
+//   BASE_URL   対象の API（既定は scripts/perf.ts が起動する API）
 //   USER_COUNT テストデータの利用者の数（perf/seed/seed.sql と合わせる）
 import type { Options } from 'k6/options'
 

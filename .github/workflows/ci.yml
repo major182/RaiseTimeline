@@ -1,4 +1,4 @@
-# PR ごとに、手元の node scripts/check.mjs と同じチェックを GitHub 上でも動かす
+# PR ごとに、手元の node scripts/check.ts と同じチェックを GitHub 上でも動かす
 name: CI
 
 on:
@@ -56,6 +56,22 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
           cache-dependency-path: perf/package-lock.json
+      - run: npm ci
+      - run: npm run check
+
+  # scripts（check・perf など。TypeScript）の型と整形
+  scripts:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: scripts
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: scripts/package-lock.json
       - run: npm ci
       - run: npm run check
 

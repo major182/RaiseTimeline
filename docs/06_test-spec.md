@@ -218,11 +218,11 @@
 
 | 何を | コマンド | 備考 |
 |---|---|---|
-| まとめて（CI と同じ） | `node scripts/check.mjs` | backend の結合テストは Docker を使う。性能テストのシナリオは型と整形だけを確かめる |
+| まとめて（CI と同じ） | `node scripts/check.ts` | backend の結合テストは Docker を使う。性能テストのシナリオは型と整形だけを確かめる |
 | backend だけ | `cd backend; ./gradlew test` | 1 クラスだけ：`./gradlew test --tests '*PostServiceUnitTests'` |
 | frontend だけ | `cd frontend; npx vitest run` | 1 ファイルだけ：`npx vitest run src/postLength.test.ts` |
-| E2E テスト | `cd frontend; npm run e2e` | Docker が要る。E2E 用の DB を起動し、API（8091）と画面（5191）を起動して動かす。初回は `npx playwright install chromium` でブラウザを入れる。CI では別のジョブ（`e2e`）で動く。`check.mjs` には含めない（時間がかかるため） |
-| 性能テスト | `node scripts/perf.mjs smoke` | Docker が要る。性能テスト用の DB（5434）と API（8092）を起動し、終わったらテストデータと DB を消す。CI では動かさない（08 の 7 章） |
+| E2E テスト | `cd frontend; npm run e2e` | Docker が要る。E2E 用の DB を起動し、API（8091）と画面（5191）を起動して動かす。初回は `npx playwright install chromium` でブラウザを入れる。CI では別のジョブ（`e2e`）で動く。`check.ts` には含めない（時間がかかるため） |
+| 性能テスト | `node scripts/perf.ts smoke` | Docker が要る。性能テスト用の DB（5434）と API（8092）を起動し、終わったらテストデータと DB を消す。CI では動かさない（08 の 7 章） |
 
 ---
 

@@ -35,7 +35,7 @@ services:
       timeout: 3s
       retries: 30
 
-  # 性能テスト用の PostgreSQL（性能テスト設計書）。node scripts/perf.mjs が起動し、終わったら volume ごと消す
+  # 性能テスト用の PostgreSQL（性能テスト設計書）。node scripts/perf.ts が起動し、終わったら volume ごと消す
   # 大量のデータを置き、実際に近いディスクの読み書きで測るため、tmpfs ではなく volume にする
   db-perf:
     image: postgres:18.6

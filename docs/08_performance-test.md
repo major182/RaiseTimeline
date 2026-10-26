@@ -31,8 +31,8 @@
 | 画面の表示速度（1 人） | Lighthouse CI（予定） | 本番用のビルドで LCP・CLS・バンドルの大きさを測る |
 | 遅い SQL の特定 | PostgreSQL の `EXPLAIN (ANALYZE, BUFFERS)`・`pg_stat_statements`（予定） | 遅い API の原因を SQL まで追う |
 
-シナリオは **TypeScript** で書く（画面と同じ言語。`perf/k6/`）。型の定義は `@types/k6`（k6 と同じ版）を使い、
-型と整形のチェック（`perf` で `npm run check`）は `node scripts/check.mjs` と CI の `perf` ジョブで毎回行う。性能テストそのものは CI では動かさない。
+シナリオと実行のスクリプト（`scripts/perf.ts`）は **TypeScript** で書く（画面と同じ言語）。k6 も Node.js 24 も .ts をそのまま実行する。型の定義は `@types/k6`（k6 と同じ版）を使い、
+型と整形のチェック（`perf` で `npm run check`）は `node scripts/check.ts` と CI の `perf` ジョブで毎回行う。性能テストそのものは CI では動かさない。
 
 ## 3. シナリオ
 
@@ -74,8 +74,8 @@ k6 では、仮想の利用者の番号（VU）ごとに別の利用者でログ
 | S3 の画像（予定） | 性能テストのときは保存先のキーの先頭を `perf/` にし、その下だけを消す |
 | 結果のファイル | `perf/results/` はコミットしない（`.gitignore`） |
 
-- `node scripts/perf.mjs` は、**成功・しきい値の不合格・失敗・中断（Ctrl+C）のどれでも、最後に削除する**
-- 調べるために残したいときだけ `--keep-data` を付ける。あとから `node scripts/perf.mjs cleanup` で消す
+- `node scripts/perf.ts` は、**成功・しきい値の不合格・失敗・中断（Ctrl+C）のどれでも、最後に削除する**
+- 調べるために残したいときだけ `--keep-data` を付ける。あとから `node scripts/perf.ts cleanup` で消す
 - 前回の DB が残っていると、次の実行は始めずに止まる（古いデータで測らないため）
 - 削除のあと、目印の利用者・投稿の残りが 0 件であることを `cleanup.sql` が表示する
 
@@ -98,16 +98,16 @@ k6 では、仮想の利用者の番号（VU）ごとに別の利用者でログ
 
 | 何を | コマンド |
 |---|---|
-| PT-01 smoke | `node scripts/perf.mjs smoke` |
-| データを残して実行 | `node scripts/perf.mjs smoke --keep-data`（DB は `localhost:5434`） |
-| 残したデータを消す | `node scripts/perf.mjs cleanup` |
+| PT-01 smoke | `node scripts/perf.ts smoke` |
+| データを残して実行 | `node scripts/perf.ts smoke --keep-data`（DB は `localhost:5434`） |
+| 残したデータを消す | `node scripts/perf.ts cleanup` |
 
-`perf.mjs` の流れ：
+`perf.ts` の流れ：
 
 1. 性能テスト用の DB（`db-perf`、ポート 5434）を起動する
 2. API を本番に近い設定で起動する（ポート 8092。`perf` プロファイル：JSON のログ・開発用のテストデータなし。署名の鍵は毎回ランダム）。Flyway がテーブルを作る
 3. テストデータを入れる
-4. k6（Docker）でシナリオを実行する。k6 はしきい値を満たさないと終了コード 99 で終わり、`perf.mjs` もその値で終わる
+4. k6（Docker）でシナリオを実行する。k6 はしきい値を満たさないと終了コード 99 で終わり、`perf.ts` もその値で終わる
 5. API を止め、テストデータを消す（5 章）
 
 結果は `perf/results/<日時>-<シナリオ>/` に残る。

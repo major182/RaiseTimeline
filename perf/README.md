@@ -3,8 +3,8 @@
 手で実行する性能テスト（CI では動かさない）。決まりごとと手順は [08 性能テスト設計書](../docs/08_performance-test.md) を見る。
 
 ```sh
-node scripts/perf.mjs smoke      # 実行し、終わったらテストデータと DB を消す
-node scripts/perf.mjs cleanup    # --keep-data で残したものを消す
+node scripts/perf.ts smoke      # 実行し、終わったらテストデータと DB を消す
+node scripts/perf.ts cleanup    # --keep-data で残したものを消す
 ```
 
 | 場所               | 内容                                                                                       |
@@ -15,4 +15,4 @@ node scripts/perf.mjs cleanup    # --keep-data で残したものを消す
 | `seed/cleanup.sql` | 目印のデータだけを消す                                                                     |
 | `results/`         | 結果（コミットしない）                                                                     |
 
-シナリオは TypeScript で書く。初回は `npm install` を行い、型と整形は `npm run check` で確かめる（`node scripts/check.mjs` にも含まれる）。
+シナリオは TypeScript で書く。初回は `npm install` を行い、型と整形は `npm run check` で確かめる（`node scripts/check.ts` にも含まれる）。

@@ -19,8 +19,8 @@ Thumbs.db
 !.vscode/settings.json
 !.vscode/extensions.json
 
-# API 仕様書の HTML（node scripts/build-api-docs.mjs で作る。手元で見るだけで、公開しない）
+# API 仕様書の HTML（node scripts/build-api-docs.ts で作る。手元で見るだけで、公開しない）
 docs/api/local/
 
-# 性能テストの結果（node scripts/perf.mjs。手元で見るだけで、コミットしない）
+# 性能テストの結果（node scripts/perf.ts。手元で見るだけで、コミットしない）
 perf/results/
