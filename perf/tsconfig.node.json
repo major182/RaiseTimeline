@@ -1,0 +1,19 @@
+{
+  // Lighthouse の実行スクリプト（Node.js で動かす）の型チェック。k6 のシナリオ（tsconfig.json）とは動く場所が違うので分ける
+  "compilerOptions": {
+    "target": "ES2024",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "types": ["node"],
+    "lib": ["ES2024", "DOM"],
+    "strict": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "erasableSyntaxOnly": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "skipLibCheck": true
+  },
+  "include": ["lighthouse", "web"]
+}
