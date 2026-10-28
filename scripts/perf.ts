@@ -73,10 +73,14 @@ if (webServer !== 'api' && webServer !== 'preview') {
 }
 // ブラウザ・Lighthouse が開く画面のポート
 const webPort = webServer === 'api' ? API_PORT : WEB_PORT
+// サーバーの状態を記録する間隔（秒）。DB の接続の待ちなど短い間の変化を見るときは短くする（例：--sample-interval=2）
+const sampleIntervalSec = Number(
+  args.find((a) => a.startsWith('--sample-interval='))?.split('=')[1] ?? 15,
+)
 
 if (!isCommand(command)) {
   console.error(
-    `使い方: node scripts/perf.ts <${[...SCENARIOS, 'cleanup'].join('|')}> [--keep-data] [--short] [--web-server=api|preview] [--web-keepalive=秒]`,
+    `使い方: node scripts/perf.ts <${[...SCENARIOS, 'cleanup'].join('|')}> [--keep-data] [--short] [--web-server=api|preview] [--web-keepalive=秒] [--sample-interval=秒]`,
   )
   process.exit(2)
 }
@@ -170,7 +174,7 @@ async function sampleMetrics(): Promise<Record<string, number | string>> {
   return sample
 }
 
-// 15 秒ごとに 1 行の JSON を追記する（長時間のシナリオで、メモリ・DB の接続の増え方を見る）
+// 決まった間隔（既定 15 秒）で 1 行の JSON を追記する（長時間のシナリオで、メモリ・DB の接続の増え方を見る）
 function startMetricsSampler(file: string): NodeJS.Timeout {
   return setInterval(() => {
     sampleMetrics()
@@ -178,7 +182,7 @@ function startMetricsSampler(file: string): NodeJS.Timeout {
       .catch(() => {
         // API が止まっていれば記録しない（k6 の結果に失敗が出る）
       })
-  }, 15_000)
+  }, sampleIntervalSec * 1000)
 }
 
 // 合計の時間が長い SQL の上位 20 件（遅い API の原因を探す入り口。性能テスト設計書 7 章）
@@ -351,6 +355,7 @@ function recordEnvironment(file: string, scenario: Scenario): void {
     memoryGb: Math.round(os.totalmem() / 1024 ** 3),
     k6: K6_IMAGE,
     webServer,
+    sampleIntervalSec,
     webKeepAliveSec: webKeepAliveSec ?? null,
     // true なら時間を縮めた動作確認。性能の合否・記録には使わない
     short,

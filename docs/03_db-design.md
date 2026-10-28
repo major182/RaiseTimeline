@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |---|---|
 | 文書番号 | 03 |
-| 版数 | 0.4 |
+| 版数 | 0.5 |
 | 作成日 | 2026-10-09 |
 | 作成者 | major182 |
 | 前提となる文書 | [01 要件定義書](01_requirements.md)、[01-1 機能一覧](01-1_feature-list.md)、[02 技術選定書](02_tech-stack.md) |
@@ -238,7 +238,7 @@ erDiagram
 | 索引 | 列 | 目的 |
 |---|---|---|
 | 主キー | `(post_id, user_id)` | いいねの数、自分がいいね済みか、いいねした人の一覧 |
-| `likes_user_created_idx` | `(user_id, created_at DESC)` | フォロー中の人がいいねした投稿を探す（5.2） |
+| `likes_user_created_idx` | `(user_id, created_at DESC) INCLUDE (post_id)` | フォロー中の人がいいねした投稿を探す（5.2）。`post_id` を含め、表を読まずに索引だけで集計する（#90） |
 
 ### 4.6 `follows`（フォロー）
 
@@ -306,34 +306,45 @@ WITH following AS (
   SELECT followee_id AS user_id FROM follows WHERE follower_id = :me
   UNION ALL SELECT :me
 ),
-feed AS (
-  -- A：自分とフォロー中の人の投稿。並びの時刻は投稿日時
-  SELECT p.id AS post_id, p.created_at AS sort_at, NULL::BIGINT AS liked_by
+-- A：自分とフォロー中の人の投稿。並びの時刻は投稿日時
+own AS (
+  SELECT p.id AS post_id, p.created_at AS sort_at
   FROM posts p
   WHERE p.user_id IN (SELECT user_id FROM following)
-  UNION ALL
-  -- B：フォロー中の人がいいねした、フォローしていない人の投稿。
-  --    並びの時刻は「基準の時刻より前で最も新しい、フォロー中の人のいいね」
-  --    UNION の片側で ORDER BY を使うため、副問い合わせに包む
-  SELECT liked.* FROM (
-    SELECT DISTINCT ON (l.post_id) l.post_id, l.created_at, l.user_id
-    FROM likes l
-    JOIN posts p ON p.id = l.post_id
-    WHERE l.user_id IN (SELECT followee_id FROM follows WHERE follower_id = :me)
-      AND l.created_at < :base_time
-      AND p.user_id NOT IN (SELECT user_id FROM following)
-    ORDER BY l.post_id, l.created_at DESC
-  ) liked
+    AND p.id NOT IN (:highlight_post_ids)                                  -- ハイライトに出したもの
+    AND (p.created_at, p.id) < (:cursor_sort_at, :cursor_post_id)         -- 2回目以降だけ
+  ORDER BY p.created_at DESC, p.id DESC
+  LIMIT 20
+),
+-- B：フォロー中の人がいいねした、フォローしていない人の投稿。
+--    並びの時刻は「基準の時刻より前で最も新しい、フォロー中の人のいいね」（投稿ごとの max）
+liked AS (
+  SELECT l.post_id, max(l.created_at) AS sort_at
+  FROM likes l
+  WHERE l.user_id IN (SELECT followee_id FROM follows WHERE follower_id = :me)
+    AND l.created_at < :base_time
+  GROUP BY l.post_id
+),
+liked_top AS (
+  SELECT liked.post_id, liked.sort_at
+  FROM liked
+  WHERE liked.post_id NOT IN (:highlight_post_ids)
+    AND (liked.sort_at, liked.post_id) < (:cursor_sort_at, :cursor_post_id)  -- 2回目以降だけ
+    AND NOT EXISTS (
+      SELECT 1 FROM posts p
+      WHERE p.id = liked.post_id AND p.user_id IN (SELECT user_id FROM following))
+  ORDER BY liked.sort_at DESC, liked.post_id DESC
+  LIMIT 20
 )
-SELECT * FROM feed
-WHERE (sort_at, post_id) < (:cursor_sort_at, :cursor_post_id)        -- 2回目以降だけ
-  AND post_id NOT IN (:highlight_post_ids)                          -- ハイライトに出したもの
+SELECT post_id, sort_at FROM (SELECT * FROM own UNION ALL SELECT * FROM liked_top) feed
 ORDER BY sort_at DESC, post_id DESC
 LIMIT 20;
 ```
 
 - `:base_time` は最初に読み込んだ時刻。読み進める間についた新しいいいねで、投稿が上に移動しないようにする
 - A と B は投稿者の条件で分かれるので、同じ投稿が両方に入ることはない
+- 速くするため（#90。性能テスト設計書 8 章）、A・B それぞれでカーソルの条件と件数の上限を先にかけてからまとめる。まとめた後の上位 20 件は、それぞれの上位 20 件の中にある
+- B は、フォロー中の人のいいねを索引 `likes_user_created_idx`（`post_id` を含む）だけで読んで集計し、投稿者の条件は並べた後の候補にだけ当てる。カーソルの条件は集計した後の時刻にかける（集計の前にかけると、カーソルより新しいいいねのある投稿が、古いいいねの時刻で再び出てしまう）
 - 「○○さん、ほか N 人がいいねしました」の表示は、取り出した 20 件の投稿について、フォロー中の人のいいねを別に数えて付ける（5.5）
 
 ### 5.3 留守中のハイライト（F-TL-08）
@@ -448,3 +459,4 @@ LIMIT 20 OFFSET :offset;
 | 0.2 | 2026-10-09 | 認証の JWT 方式への変更に合わせ、Spring Session のテーブルをやめて refresh_tokens を追加（D-9、4.7） |
 | 0.3 | 2026-10-09 | タイムラインの実装に合わせ、5.2 の SQL のいいね経由の部分を副問い合わせに包んだ（UNION の片側では ORDER BY が使えない）。5.3 の数値を設定値と明記 |
 | 0.4 | 2026-10-18 | 返信のため `comments.parent_id` と索引を追加（D-10、4.4、5.9）。コメントの数に返信を含めることを明記（5.3、5.5） |
+| 0.5 | 2026-10-28 | フォロー中タブの SQL を速くした（5.2）。`likes_user_created_idx` に `post_id` を含めた（V10）（#90） |
