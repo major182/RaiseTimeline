@@ -25,3 +25,6 @@ export const options: Options = {
 }
 
 export default userIteration
+
+// 終了時に HTML のレポートと集計の表を書き出す
+export { handleSummary } from '../lib/report.ts'

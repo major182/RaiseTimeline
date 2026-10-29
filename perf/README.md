@@ -11,6 +11,7 @@ node scripts/perf.ts cleanup    # --keep-data で残したものを消す
 | ------------------------ | ------------------------------------------------------------------------------------------ |
 | `k6/lib/`                | 共通の設定・しきい値（`config.ts`）、ログイン（`auth.ts`）、API の呼び出し（`actions.ts`） |
 | `k6/scenarios/`          | シナリオ（PT-01〜）                                                                        |
+| `k6/lib/report.ts`       | 終了時の HTML のレポート（`report.html`）と集計の表                                        |
 | `k6/lib/browser-flow.ts` | ブラウザでの一連の操作（PT-07・08）                                                        |
 | `lighthouse/run.ts`      | Lighthouse での画面の計測（PT-06）                                                         |
 | `seed/seed.sql`          | 目印つきのテストデータ                                                                     |

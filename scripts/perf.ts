@@ -389,6 +389,7 @@ function runK6(scenario: Scenario, resultDir: string): Promise<number> {
     '-e', `BASE_URL=http://host.docker.internal:${API_PORT}`,
     '-e', `WEB_URL=http://host.docker.internal:${webPort}`,
     '-e', `TIME_SCALE=${short ? 0.1 : 1}`,
+    '-e', `SCENARIO=${scenario}`,
     image, 'run',
     '--summary-export', '/results/summary.json',
     ...rawOutput,
