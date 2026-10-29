@@ -48,6 +48,12 @@ app:
 server:
   # ALB の後ろで動くため、X-Forwarded-For から利用者の IP を取る（ログの network.client.ip。ログ設計書 4 章）
   forward-headers-strategy: native
+  # 画面のファイル（JS は約 670KB）と API の応答を、ブラウザが対応していれば gzip で圧縮して送る（性能テスト設計書 8 章、#90）。
+  # 小さい応答は圧縮しても縮まらないので、1KB 以上だけにする
+  compression:
+    enabled: true
+    mime-types: text/html,text/css,text/javascript,application/javascript,application/json,application/problem+json,image/svg+xml
+    min-response-size: 1KB
   tomcat:
     # 上限を超えたアップロードでも、413 の応答を返せるよう本文を読み切る（既定の 2MB では接続が切られることがある）
     max-swallow-size: 25MB

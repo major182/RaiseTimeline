@@ -22,37 +22,52 @@ public class TimelineQueries {
 
     /**
      * フォロー中タブの並び（DB 設計書 5.2）。
-     * A：自分とフォロー中の人の投稿（並びの時刻は投稿日時）。
-     * B：フォロー中の人がいいねした、フォローしていない人の投稿（並びの時刻は、基準の時刻より前で最も新しい、フォロー中の人のいいね）。
+     * A（own）：自分とフォロー中の人の投稿（並びの時刻は投稿日時）。
+     * B（liked_top）：フォロー中の人がいいねした、フォローしていない人の投稿（並びの時刻は、基準の時刻より前で最も新しい、フォロー中の人のいいね）。
      * A と B は投稿者の条件で分かれるので、同じ投稿が両方に入ることはない。
+     *
+     * <p>速くするため（#90）、A・B それぞれでカーソルの条件と件数の上限を先にかけてからまとめる（まとめた後の上位 :limit 件は、
+     * それぞれの上位 :limit 件の中にある）。B は投稿ごとの最新のいいねを集計（max）で求め、投稿者の条件は並べた後の候補にだけ当てる。
+     * {@code %s} には、カーソルがあるとき A・B の条件（{@link #OWN_AFTER_CURSOR}・{@link #LIKED_AFTER_CURSOR}）が入る。
      */
     private static final String FEED = """
             WITH following AS (
               SELECT followee_id AS user_id FROM follows WHERE follower_id = :me
               UNION ALL SELECT :me
             ),
-            feed AS (
+            own AS (
               SELECT p.id AS post_id, p.created_at AS sort_at
               FROM posts p
               WHERE p.user_id IN (SELECT user_id FROM following)
-              UNION ALL
-              SELECT liked.post_id, liked.sort_at FROM (
-                SELECT DISTINCT ON (l.post_id) l.post_id, l.created_at AS sort_at
-                FROM likes l
-                JOIN posts p ON p.id = l.post_id
-                WHERE l.user_id IN (SELECT followee_id FROM follows WHERE follower_id = :me)
-                  AND l.created_at < :baseTime
-                  AND p.user_id NOT IN (SELECT user_id FROM following)
-                ORDER BY l.post_id, l.created_at DESC
-              ) liked
+                AND p.id NOT IN (:excludeIds)%s
+              ORDER BY p.created_at DESC, p.id DESC
+              LIMIT :limit
+            ),
+            liked AS (
+              SELECT l.post_id, max(l.created_at) AS sort_at
+              FROM likes l
+              WHERE l.user_id IN (SELECT followee_id FROM follows WHERE follower_id = :me)
+                AND l.created_at < :baseTime
+              GROUP BY l.post_id
+            ),
+            liked_top AS (
+              SELECT liked.post_id, liked.sort_at
+              FROM liked
+              WHERE liked.post_id NOT IN (:excludeIds)%s
+                AND NOT EXISTS (
+                  SELECT 1 FROM posts p
+                  WHERE p.id = liked.post_id AND p.user_id IN (SELECT user_id FROM following))
+              ORDER BY liked.sort_at DESC, liked.post_id DESC
+              LIMIT :limit
             )
-            SELECT post_id, sort_at FROM feed
-            WHERE post_id NOT IN (:excludeIds)
+            SELECT post_id, sort_at FROM (SELECT * FROM own UNION ALL SELECT * FROM liked_top) feed
+            ORDER BY sort_at DESC, post_id DESC
+            LIMIT :limit
             """;
 
-    private static final String AFTER_CURSOR = " AND (sort_at, post_id) < (:cursorAt, :cursorId)";
+    private static final String OWN_AFTER_CURSOR = "\n    AND (p.created_at, p.id) < (:cursorAt, :cursorId)";
 
-    private static final String ORDER_AND_LIMIT = " ORDER BY sort_at DESC, post_id DESC LIMIT :limit";
+    private static final String LIKED_AFTER_CURSOR = "\n    AND (liked.sort_at, liked.post_id) < (:cursorAt, :cursorId)";
 
     /**
      * 留守中のハイライトの候補（DB 設計書 5.3）。前回開いた時刻から今までの、フォロー中の人（自分を除く）の投稿のうち、
@@ -105,13 +120,15 @@ public class TimelineQueries {
                 .addValue("baseTime", utc(baseTime))
                 .addValue("excludeIds", withSentinel(excludeIds))
                 .addValue("limit", limit);
-        String sql = FEED;
-        if (after != null) {
-            sql += AFTER_CURSOR;
+        String sql;
+        if (after == null) {
+            sql = FEED.formatted("", "");
+        } else {
+            sql = FEED.formatted(OWN_AFTER_CURSOR, LIKED_AFTER_CURSOR);
             params.addValue("cursorAt", utc(after.sortAt())).addValue("cursorId", after.postId());
         }
         return jdbc.query(
-                sql + ORDER_AND_LIMIT,
+                sql,
                 params,
                 (rs, i) -> new FeedRow(
                         rs.getLong("post_id"),
