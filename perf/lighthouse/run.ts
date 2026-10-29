@@ -47,7 +47,7 @@ async function measure(name: string, url: string): Promise<PageResult> {
     // ログインの状態（Cookie）を消さないよう、保存領域の初期化を止める
     const result = await lighthouse(
       url,
-      { port: DEBUG_PORT, output: 'json', logLevel: 'error', disableStorageReset: true },
+      { port: DEBUG_PORT, output: 'html', logLevel: 'error', disableStorageReset: true },
       desktopConfig,
     )
     if (!result) throw new Error(`${name} を測れませんでした`)
@@ -60,6 +60,8 @@ async function measure(name: string, url: string): Promise<PageResult> {
     })
     if (i === RUNS - 1) {
       writeFileSync(path.join(RESULT_DIR, `lighthouse-${name}.json`), JSON.stringify(result.lhr))
+      // 同じ結果の HTML のレポート（ブラウザで開ける）
+      writeFileSync(path.join(RESULT_DIR, `lighthouse-${name}.html`), String(result.report))
     }
   }
   const score = median(runs.map((r) => r.score))

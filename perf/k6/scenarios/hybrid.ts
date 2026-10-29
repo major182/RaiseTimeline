@@ -44,3 +44,6 @@ export function apiUser(): void {
 export async function browserUser(): Promise<void> {
   await browserIteration()
 }
+
+// 終了時に HTML のレポートと集計の表を書き出す
+export { handleSummary } from '../lib/report.ts'

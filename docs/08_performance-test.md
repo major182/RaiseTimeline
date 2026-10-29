@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |---|---|
 | 文書番号 | 08 |
-| 版数 | 0.4 |
+| 版数 | 0.5 |
 | 作成日 | 2026-10-26 |
 | 作成者 | major182 |
 | 前提となる文書 | [02 技術選定書](02_tech-stack.md)、[03 DB 設計書](03_db-design.md)、[05 API 設計書](05_api-design.md)、[06 テスト仕様書](06_test-spec.md) |
@@ -144,13 +144,14 @@ k6 では、仮想の利用者の番号（VU）ごとに別の利用者でログ
 
 | ファイル | 内容 |
 |---|---|
+| `report.html` | k6 の結果の HTML のレポート（k6-reporter 3.0.4。しきい値・checks の合否と、API ごとの応答時間の表）。ブラウザで開く |
 | `summary.json` | k6 の集計（応答時間の分布・件数・しきい値の合否） |
 | `environment.json` | 実行の環境（コミット・OS・CPU・メモリ・k6 の版） |
 | `backend.log` | API のログ |
 | `web.log` | `--web-server=preview` のときの、画面の配信のログ |
 | `k6-raw.json.gz` | PT-07・08 の、1 件ずつの記録（ブラウザの通信の URL・時刻・所要時間など）。遅い通信の原因を調べるときに使う |
 | `failure-vu<番号>-iter<回>.png` | ブラウザの操作が途中で止まったときの画面 |
-| `lighthouse-summary.json`・`lighthouse-<画面>.json` | PT-06 の画面ごとの中央値と、最後の 1 回の Lighthouse の結果（JSON。Lighthouse Viewer で開ける） |
+| `lighthouse-summary.json`・`lighthouse-<画面>.json`・`lighthouse-<画面>.html` | PT-06 の画面ごとの中央値と、最後の 1 回の Lighthouse の結果（JSON と、ブラウザで開ける HTML のレポート） |
 | `metrics.jsonl` | 15 秒ごとのサーバーの状態（DB の接続の使用中・待ち・上限、ヒープの使用量、スレッド数、CPU）。Actuator の metrics（本体の設定は health だけ。`perf.ts` が環境変数で metrics の公開を足す） |
 | `slow-queries.txt` | 合計の時間が長い SQL の上位 20 件（回数・合計・平均・最大・行数） |
 
@@ -221,3 +222,4 @@ k6 では、仮想の利用者の番号（VU）ごとに別の利用者でログ
 | 0.2 | 2026-10-26 | PT-02〜05、サーバーの状態と遅い SQL の記録、--short を追加。PT-02・03 の結果を記録（#86） |
 | 0.3 | 2026-10-28 | PT-06〜08（ブラウザでの計測）、日本語のフォント入りのブラウザ、PT-08 の調査の記録。本体を変えない方針を明記し、テスト用の設定（metrics の公開・画面の配信）を本体から `perf.ts` に移した（#88） |
 | 0.4 | 2026-10-28 | PT-05 の結果、#90 の修正の前後の比較を記録。サーバーの状態の記録の間隔（--sample-interval）を追加 |
+| 0.5 | 2026-10-29 | 結果の HTML のレポート（k6-reporter の report.html、Lighthouse の HTML）を追加（#92） |
