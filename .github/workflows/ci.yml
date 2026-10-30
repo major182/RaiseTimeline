@@ -97,8 +97,8 @@ jobs:
       # ブラウザは Chromium だけを入れる（--with-deps で、動かすのに要る OS のライブラリも入れる）
       - run: npx playwright install --with-deps chromium
       - run: npm run e2e
-      # 失敗したときは、画面のスクリーンショットと操作の記録（トレース）を見られるように残す
-      - if: failure()
+      # 成功・失敗にかかわらず、HTML のレポートを残す。失敗したときは画面のスクリーンショットと操作の記録（トレース）も入る
+      - if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v7
         with:
           name: playwright-report
