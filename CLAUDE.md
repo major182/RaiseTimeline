@@ -18,13 +18,13 @@
 | フロントエンド | TypeScript 6.0.3、React 19.3.0、Vite 8.3.3、Material UI 9.4.0、React Router 8.4.0、TanStack Query 5.104.1、Node.js 24.21.0 (LTS) |
 | バックエンド | Java 25 (LTS)、Spring Boot 4.1.1（Spring Security・OAuth2 Resource Server（JWT）・Spring Data JPA・Flyway・Bean Validation）、AWS SDK for Java 2.55.11、springdoc-openapi 3.1.1（開発だけ）、Gradle 9.7.1（Kotlin DSL） |
 | データベース | PostgreSQL 18.6（本番は RDS、開発・テストは Docker） |
-| インフラ | AWS（**ALB・EC2・RDS・S3**、SSM パラメータストア・Session Manager、ACM）、Amazon Linux 2023、Terraform 1.16.5 + AWS プロバイダー 6.67.0、GitHub Actions |
+| インフラ | AWS（**CloudFront・S3・ALB・ECS Fargate・RDS**、ECR、SSM パラメータストア）、Terraform 1.16.5 + AWS プロバイダー 6.67.0、GitHub Actions |
 
 - **バージョンは数字で明記する**（「最新版」と書かない）。LTS がある技術は最新の LTS、ない技術は最新の安定版を使う
 - npm のパッケージは `--save-exact` で固定する。Gradle の依存は Spring Boot の管理に任せ、管理外のものだけバージョンを書く
 - TypeScript は typescript-eslint が対応するまで 7 に上げない（技術選定書 4.5）
 - 採用技術・バージョンを変えるときは、技術選定書を先に更新する
-- **費用を抑える**：ALB・RDS は動かしている間ずっと課金される。使わない間は Terraform で消せる作りにする（要件定義書 C-03）
+- **費用を抑える**：ALB・Fargate・RDS は動かしている間ずっと課金される。使わない間は Terraform で消せる作りにする（要件定義書 C-03）
 
 ---
 
@@ -102,8 +102,7 @@ gh pr checks <番号>                                        # ④ 実行 ID（r
 | 04 | [画面設計書](docs/04_screen-design.md) | 画面の項目・動き・URL・メッセージの文言の正。画面の実装はこれに合わせる |
 | 05 | [API 設計書](docs/05_api-design.md) | API の方針・共通の仕様・エラーの種類（`code`）・API と画面の対応。送る値・返す値の細かい形は、自動で作る [API 仕様書](docs/api/openapi.yaml)（OpenAPI）が正 |
 | 06 | [テスト仕様書](docs/06_test-spec.md) | テストの区分（単体・結合）・観点の出し方・観点表と要件の対応の正 |
-
-今後作る予定：デプロイ設計書。
+| 09 | [デプロイ設計書](docs/09_deployment.md) | AWS の構成・費用・秘密情報の置き場所・手順・片付けの正 |
 
 ---
 
@@ -176,7 +175,7 @@ cd frontend; npm install; npm run dev     # 画面（http://localhost:5173/）
 **一度に全部作らない。最小の単位で作り、動くことを確かめてから次へ進む。**
 止まった段階＝原因のある場所になり、切り分けが速い。
 
-1. 依存の少ないものから順に並べる（例：ネットワーク → S3 → RDS → EC2 → ALB → アプリ）
+1. 依存の少ないものから順に並べる（例：ネットワーク → S3 → RDS → ALB → ECS → CloudFront → アプリ）
 2. 各段階の「確認できたら次へ進む条件」を先に決める
 3. 確かめられなかったら先に進まない。確認した内容は手順書に残す
 4. **後の段階への依存を前の段階に持ち込まない**

@@ -39,7 +39,7 @@
 | `usr.id` | 利用者の ID（ログインしていれば） | `7` |
 | `http.method`・`http.url_details.path`・`http.status_code` | アクセスログ（4 章） | `GET`・`/api/posts`・`200` |
 | `duration` | 処理にかかった時間（ナノ秒） | `12345678` |
-| `network.client.ip` | 利用者の IP（ALB の `X-Forwarded-For` から） | |
+| `network.client.ip` | 利用者の IP（CloudFront・ALB が付ける `X-Forwarded-For` から） | |
 | `evt.name`・`evt.outcome`・`evt.reason` | 出来事の種類・結果・理由（5 章） | `authentication`・`failure`・`wrong_password` |
 | `error.kind`・`error.message`・`error.stack` | 例外の種類・メッセージ・スタックトレース | |
 
@@ -98,8 +98,8 @@ Debug は出さない（`logging.level.root: INFO`）。
 |---|---|---|
 | 開発（`./gradlew bootRun`） | 人が読む形式 | ターミナル。残さない |
 | テスト（CI） | JSON | GitHub Actions の実行ログ（公開されるので 6 章を守る） |
-| デプロイ後（検証） | JSON | EC2 の systemd → journald → CloudWatch Agent → CloudWatch Logs |
-| リリース後（本番） | JSON | 検証と同じ。Datadog を使うときは、EC2 に Datadog Agent を入れて journald から送る（または CloudWatch Logs から Datadog Forwarder で送る） |
+| デプロイ後（検証） | JSON | Fargate の標準出力 → awslogs ドライバー → CloudWatch Logs |
+| リリース後（本番） | JSON | 検証と同じ。Datadog を使うときは、CloudWatch Logs から Datadog Forwarder で送る |
 
 - 検証・本番での集め方（CloudWatch Agent・ロググループと保持期間・IAM）は、インフラ（Terraform）の作業で決める
 - Datadog の API キーは秘密の置き場（パラメータストア）に置き、Agent の設定からだけ参照する。文書・リポジトリには書かない

@@ -22,7 +22,7 @@ X（旧 Twitter）のような、タイムライン形式のテキスト SNS で
 | フロントエンド | React 19.3.0、TypeScript 6.0.3、Vite 8.3.3、Material UI 9.4.0 |
 | バックエンド | Java 25、Spring Boot 4.1.1 |
 | データベース | PostgreSQL 18.6 |
-| インフラ | AWS（ALB・EC2・RDS・S3）、Terraform |
+| インフラ | AWS（CloudFront・S3・ALB・ECS Fargate・RDS）、Terraform |
 
 ## 開発環境の起動
 
@@ -44,4 +44,5 @@ cd frontend && npm install && npm run dev  # 画面（http://localhost:5173/）
 | 03 | [DB 設計書](docs/03_db-design.md) |
 | 04 | [画面設計書](docs/04_screen-design.md) |
 | 05 | [API 設計書](docs/05_api-design.md) |
+| 09 | [デプロイ設計書](docs/09_deployment.md) |
 | ― | [API 仕様書（OpenAPI。コードから自動で作る）](docs/api/openapi.yaml) |
