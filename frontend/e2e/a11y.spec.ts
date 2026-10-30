@@ -69,8 +69,8 @@ test.describe('E2E-07 ログインした後の画面', () => {
     const body = `詳細のアクセシビリティ ${user.username}`
     await createPost(page, body)
     const card = postCard(page, body)
-    await card.getByRole('button', { name: 'いいね（0）' }).click()
-    await card.getByRole('link', { name: 'コメント（0）' }).click()
+    await card.getByRole('button', { name: 'いいね 0' }).click()
+    await card.getByRole('link', { name: 'コメント 0' }).click()
     await page.getByRole('textbox', { name: 'コメント' }).fill('コメントです')
     await page.getByRole('button', { name: 'コメントする' }).click()
     await expect(page.getByRole('region', { name: 'コメントの一覧' })).toContainText('コメントです')
