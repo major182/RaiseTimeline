@@ -126,11 +126,10 @@ export function AppLayout() {
             </Button>
           </Box>
           {me && myProfile && (
-            // 自分のアイコンと名前。押すと自分のプロフィールへ
+            // 自分のアイコンと名前。押すと自分のプロフィールへ。読み上げの名前は見えている名前のまま（WCAG 2.5.3。#95）
             <ButtonBase
               component={RouterLink}
               to={myProfile}
-              aria-label="自分のプロフィール"
               sx={{
                 mt: 'auto',
                 mx: 2,
@@ -141,7 +140,10 @@ export function AppLayout() {
                 gap: 1.5,
               }}
             >
-              <UserAvatar user={me} />
+              {/* アバターの頭文字は名前と重なる飾りなので、読み上げない */}
+              <Box aria-hidden sx={{ display: 'flex' }}>
+                <UserAvatar user={me} />
+              </Box>
               <Box sx={{ minWidth: 0, textAlign: 'left' }}>
                 <Typography noWrap sx={{ fontWeight: 'bold' }}>
                   {me.displayName}

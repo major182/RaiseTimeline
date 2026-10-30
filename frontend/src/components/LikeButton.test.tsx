@@ -37,14 +37,14 @@ describe('いいねのボタン（F-LK-01・02）', () => {
     stubApi({ 'PUT /api/posts/100/like': () => reply.promise as unknown as Response })
     const user = setup(makePost({ likeCount: 4 }))
 
-    await user.click(screen.getByRole('button', { name: 'いいね（4）' }))
+    await user.click(screen.getByRole('button', { name: 'いいね 4' }))
     // 返事の前に切り替わっている
-    const pressed = screen.getByRole('button', { name: 'いいねを取り消す（5）' })
+    const pressed = screen.getByRole('button', { name: 'いいねを取り消す 5' })
     expect(pressed).toHaveAttribute('aria-pressed', 'true')
 
     // ほかの人のいいねも増えていて、サーバーは 7 を返した
     reply.resolve(json(200, { liked: true, likeCount: 7 }))
-    expect(await screen.findByRole('button', { name: 'いいねを取り消す（7）' })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'いいねを取り消す 7' })).toBeInTheDocument()
   })
 
   it('いいね済みなら、押すと取り消す', async () => {
@@ -53,8 +53,8 @@ describe('いいねのボタン（F-LK-01・02）', () => {
     })
     const user = setup(makePost({ likedByMe: true, likeCount: 3 }))
 
-    await user.click(screen.getByRole('button', { name: 'いいねを取り消す（3）' }))
-    expect(await screen.findByRole('button', { name: 'いいね（2）' })).toHaveAttribute(
+    await user.click(screen.getByRole('button', { name: 'いいねを取り消す 3' }))
+    expect(await screen.findByRole('button', { name: 'いいね 2' })).toHaveAttribute(
       'aria-pressed',
       'false',
     )
@@ -74,10 +74,10 @@ describe('いいねのボタン（F-LK-01・02）', () => {
     })
     const user = setup(makePost({ likeCount: 4 }))
 
-    await user.click(screen.getByRole('button', { name: 'いいね（4）' }))
+    await user.click(screen.getByRole('button', { name: 'いいね 4' }))
     expect(await screen.findByText('見つかりません')).toBeInTheDocument()
     await waitFor(() =>
-      expect(screen.getByRole('button', { name: 'いいね（4）' })).toHaveAttribute(
+      expect(screen.getByRole('button', { name: 'いいね 4' })).toHaveAttribute(
         'aria-pressed',
         'false',
       ),

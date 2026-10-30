@@ -87,12 +87,12 @@ async function flow(page: Page): Promise<void> {
 
   // 5. いいね → 表示が変わるまで
   await timed(steps.like, async () => {
-    await card.getByRole('button', { name: 'いいね（0）' }).click()
-    await card.getByRole('button', { name: 'いいねを取り消す（1）' }).waitFor()
+    await card.getByRole('button', { name: 'いいね 0' }).click()
+    await card.getByRole('button', { name: 'いいねを取り消す 1' }).waitFor()
   })
 
   // 6. 投稿の詳細でコメント → 一覧に出るまで
-  await card.getByRole('link', { name: 'コメント（0）' }).click()
+  await card.getByRole('link', { name: 'コメント 0' }).click()
   await timed(steps.comment, async () => {
     await page.getByRole('textbox', { name: 'コメント' }).fill('ブラウザの性能テストのコメント')
     await page.getByRole('button', { name: 'コメントする' }).click()
@@ -115,7 +115,7 @@ async function flow(page: Page): Promise<void> {
 
   // 8. 自分のプロフィールへ
   await timed(steps.profile, async () => {
-    await page.getByRole('link', { name: '自分のプロフィール' }).first().click()
+    await page.getByRole('link', { name: 'プロフィール', exact: true }).first().click()
     await page.locator('article').first().waitFor()
   })
 }
