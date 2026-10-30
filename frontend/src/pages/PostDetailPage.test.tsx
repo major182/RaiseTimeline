@@ -109,7 +109,7 @@ describe('コメント（F-CM-01〜04）', () => {
     await waitFor(() => expect(commentBodies()).toEqual(['コメントです', '書いたコメント']))
     expect(sent).toEqual({ body: '書いたコメント' })
     expect(input).toHaveValue('')
-    expect(screen.getByRole('link', { name: 'コメント（2）' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'コメント 2' })).toBeInTheDocument()
   })
 
   it('空白だけ・280 文字を超えたらコメントできない', async () => {
@@ -142,7 +142,7 @@ describe('コメント（F-CM-01〜04）', () => {
 
     expect(await screen.findByText('コメントを削除しました')).toBeInTheDocument()
     expect(commentBodies()).toEqual(['消せないコメント'])
-    expect(screen.getByRole('link', { name: 'コメント（0）' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'コメント 0' })).toBeInTheDocument()
   })
 })
 
@@ -222,7 +222,7 @@ describe('返信（F-CM-05・06、画面設計書 5.7）', () => {
     )
     expect(sent).toEqual({ body: '書いた返信', parentId: 1 })
     expect(screen.queryByRole('textbox', { name: '返信' })).not.toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'コメント（4）' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'コメント 4' })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: '返信を隠す' }))
     expect(screen.getByRole('button', { name: '返信を表示（3 件）' })).toBeInTheDocument()
   })
@@ -292,7 +292,7 @@ describe('返信（F-CM-05・06、画面設計書 5.7）', () => {
       await screen.findByText('このコメントは削除されたため、返信できません'),
     ).toBeInTheDocument()
     expect(commentBodies()).toEqual([])
-    expect(screen.getByRole('link', { name: 'コメント（0）' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'コメント 0' })).toBeInTheDocument()
   })
 
   it('UT-CM-04 返信があるコメントは C-05 で確かめ、消したら返信の数も合わせてコメントの数を減らす', async () => {
@@ -308,7 +308,7 @@ describe('返信（F-CM-05・06、画面設計書 5.7）', () => {
 
     expect(await screen.findByText('コメントを削除しました')).toBeInTheDocument()
     expect(commentBodies()).toEqual([])
-    expect(screen.getByRole('link', { name: 'コメント（0）' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'コメント 0' })).toBeInTheDocument()
   })
 
   it('UT-CM-04 返信を消したら、返信の数とコメントの数を 1 つ減らす（C-02）', async () => {
@@ -327,7 +327,7 @@ describe('返信（F-CM-05・06、画面設計書 5.7）', () => {
     await user.click(within(confirm).getByRole('button', { name: '削除' }))
 
     await waitFor(() => expect(commentBodies()).toEqual(['元のコメント', '返信2']))
-    expect(screen.getByRole('link', { name: 'コメント（2）' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'コメント 2' })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: '返信を隠す' }))
     expect(screen.getByRole('button', { name: '返信を表示（1 件）' })).toBeInTheDocument()
   })

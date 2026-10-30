@@ -50,7 +50,8 @@ export function LikeButton({ post }: { post: Post }) {
       color={liked ? 'error' : 'inherit'}
       startIcon={liked ? <Favorite /> : <FavoriteBorder />}
       aria-pressed={liked}
-      aria-label={liked ? `いいねを取り消す（${post.likeCount}）` : `いいね（${post.likeCount}）`}
+      // 読み上げの名前に、見えている数をそのまま含める（WCAG 2.5.3。#95）
+      aria-label={`${liked ? 'いいねを取り消す' : 'いいね'} ${formatCount(post.likeCount)}`}
       onClick={(e) => {
         e.stopPropagation()
         mutation.mutate(!liked)

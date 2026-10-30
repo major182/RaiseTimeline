@@ -47,10 +47,10 @@ test('E2E-04 他人の投稿にいいね・コメントすると数が増え、�
   await signup(page)
   await page.getByRole('tab', { name: '全体' }).click()
   const card = postCard(page, body)
-  await card.getByRole('button', { name: 'いいね（0）' }).click()
-  await expect(card.getByRole('button', { name: 'いいねを取り消す（1）' })).toBeVisible()
+  await card.getByRole('button', { name: 'いいね 0' }).click()
+  await expect(card.getByRole('button', { name: 'いいねを取り消す 1' })).toBeVisible()
 
-  await card.getByRole('link', { name: 'コメント（0）' }).click()
+  await card.getByRole('link', { name: 'コメント 0' }).click()
   await page.getByRole('textbox', { name: 'コメント' }).fill('いい投稿ですね')
   await page.getByRole('button', { name: 'コメントする' }).click()
   await expect(page.getByRole('region', { name: 'コメントの一覧' })).toContainText('いい投稿ですね')
@@ -58,6 +58,6 @@ test('E2E-04 他人の投稿にいいね・コメントすると数が増え、�
   // 投稿した人の画面でも、再読み込みすると数が増えている
   await authorPage.reload()
   const mine = postCard(authorPage, body)
-  await expect(mine.getByRole('button', { name: 'いいね（1）' })).toBeVisible()
-  await expect(mine.getByRole('link', { name: 'コメント（1）' })).toBeVisible()
+  await expect(mine.getByRole('button', { name: 'いいね 1' })).toBeVisible()
+  await expect(mine.getByRole('link', { name: 'コメント 1' })).toBeVisible()
 })

@@ -22,6 +22,12 @@ describe('設定（SC-10）', () => {
       '/settings/profile',
     )
   })
+
+  it('メニューの項目はリストの項目（li）に入れる（WCAG 1.3.1。#95）', async () => {
+    openSettings()
+    const link = await screen.findByRole('link', { name: 'プロフィールを編集' })
+    expect(link.closest('li')).not.toBeNull()
+  })
 })
 
 describe('パスワードの変更（F-AU-05）', () => {
