@@ -15,8 +15,8 @@ describe('投稿カード（画面設計書 4.1）', () => {
     expect(within(card).getByText('@yamada')).toBeInTheDocument()
     expect(within(card).getByText('3時間')).toBeInTheDocument()
     expect(within(card).getByText(/1行目\s2行目/)).toBeInTheDocument()
-    expect(within(card).getByRole('button', { name: 'いいね（12345）' })).toHaveTextContent('1.2万')
-    expect(within(card).getByRole('link', { name: 'コメント（3）' })).toHaveTextContent('3')
+    expect(within(card).getByRole('button', { name: 'いいね 1.2万' })).toHaveTextContent('1.2万')
+    expect(within(card).getByRole('link', { name: 'コメント 3' })).toHaveTextContent('3')
   })
 
   it('編集した投稿には「編集済み」を出す', () => {
@@ -37,7 +37,7 @@ describe('投稿カード（画面設計書 4.1）', () => {
     )
     expect(screen.getByRole('link', { name: '山田' })).toHaveAttribute('href', '/users/yamada')
     expect(screen.getByRole('link', { name: '3時間' })).toHaveAttribute('href', '/posts/7')
-    expect(screen.getByRole('link', { name: 'コメント（0）' })).toHaveAttribute('href', '/posts/7')
+    expect(screen.getByRole('link', { name: 'コメント 0' })).toHaveAttribute('href', '/posts/7')
   })
 
   it('本文の HTML は文字のまま出し、動かさない（XSS の対策）', () => {
@@ -68,7 +68,7 @@ describe('投稿カード（画面設計書 4.1）', () => {
     ).not.toBeInTheDocument()
     // ボタンは「いいね」だけ（コメントはリンク）
     expect(screen.getAllByRole('button').map((b) => b.getAttribute('aria-label'))).toEqual([
-      'いいね（0）',
+      'いいね 0',
     ])
   })
 

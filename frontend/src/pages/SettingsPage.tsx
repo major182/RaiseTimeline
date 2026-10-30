@@ -4,6 +4,7 @@ import {
   Button,
   Divider,
   List,
+  ListItem,
   ListItemButton,
   ListItemText,
   Stack,
@@ -25,11 +26,14 @@ import { useNotify } from '../components/SnackbarProvider'
 export function SettingsPage() {
   return (
     <PageColumn title="設定" back={false}>
+      {/* リストの項目は li（ListItem）で包む（WCAG 1.3.1。#95） */}
       <List disablePadding>
-        <ListItemButton component={RouterLink} to="/settings/profile">
-          <ListItemText primary="プロフィールを編集" />
-          <ChevronRight color="action" />
-        </ListItemButton>
+        <ListItem disablePadding>
+          <ListItemButton component={RouterLink} to="/settings/profile">
+            <ListItemText primary="プロフィールを編集" />
+            <ChevronRight color="action" />
+          </ListItemButton>
+        </ListItem>
       </List>
       <Divider />
       <PasswordForm />

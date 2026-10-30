@@ -31,7 +31,15 @@ export function CharCounter({ text, max }: Props) {
           {remaining}
         </Typography>
       )}
-      <CircularProgress variant="determinate" value={value} size={24} thickness={5} color={color} />
+      {/* 円は残りの割合を見せる飾り。残りの文字数は外側の status が読み上げる（#95） */}
+      <CircularProgress
+        aria-hidden
+        variant="determinate"
+        value={value}
+        size={24}
+        thickness={5}
+        color={color}
+      />
     </Box>
   )
 }

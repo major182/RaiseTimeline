@@ -14,14 +14,14 @@ test('E2E-06 自分の投稿のコメントに、候補から選んだメンシ�
   const page = await (await browser.newContext()).newPage()
   const commenter = await signup(page)
   await page.getByRole('tab', { name: '全体' }).click()
-  await postCard(page, body).getByRole('link', { name: 'コメント（0）' }).click()
+  await postCard(page, body).getByRole('link', { name: 'コメント 0' }).click()
   await page.getByRole('textbox', { name: 'コメント' }).fill('はじめまして')
   await page.getByRole('button', { name: 'コメントする' }).click()
   await expect(page.getByRole('region', { name: 'コメントの一覧' })).toContainText('はじめまして')
 
   // 投稿した人が、コメントに返信する。@ に続けて打つと候補が出る
   await authorPage.reload()
-  await postCard(authorPage, body).getByRole('link', { name: 'コメント（1）' }).click()
+  await postCard(authorPage, body).getByRole('link', { name: 'コメント 1' }).click()
   await authorPage.getByRole('button', { name: '返信' }).click()
   const input = authorPage.getByRole('textbox', { name: '返信' })
   await input.pressSequentially(`@${commenter.username.slice(0, 8)}`)
@@ -35,7 +35,7 @@ test('E2E-06 自分の投稿のコメントに、候補から選んだメンシ�
 
   const replies = authorPage.getByRole('region', { name: '返信の一覧' })
   await expect(replies).toContainText('ありがとうございます')
-  await expect(authorPage.getByRole('link', { name: 'コメント（2）' })).toBeVisible()
+  await expect(authorPage.getByRole('link', { name: 'コメント 2' })).toBeVisible()
 
   // 再読み込みすると、返信は閉じた状態で数だけ出る。開くと、メンションがプロフィールへのリンクになっている
   await authorPage.reload()

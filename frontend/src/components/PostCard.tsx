@@ -158,7 +158,7 @@ export function PostCard({ post, detail = false, onDeleted }: Props) {
               to={detailPath}
               size="small"
               startIcon={<ChatBubbleOutline />}
-              aria-label={`コメント（${post.commentCount}）`}
+              aria-label={`コメント ${formatCount(post.commentCount)}`}
               sx={{ minWidth: 0, color: 'text.secondary' }}
             >
               {formatCount(post.commentCount)}

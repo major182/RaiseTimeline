@@ -63,7 +63,7 @@ describe('カードを押して詳細へ（4.1）', () => {
     stubApi({ 'PUT /api/posts/7/like': json(200, { liked: true, likeCount: 1 }) })
     const user = userEvent.setup()
     renderWithProviders(<PostCard post={makePost({ id: 7 })} />)
-    await user.click(screen.getByRole('button', { name: 'いいね（0）' }))
+    await user.click(screen.getByRole('button', { name: 'いいね 0' }))
     expect(screen.getByTestId('location')).toHaveTextContent(/^\/$/)
   })
 })

@@ -17,6 +17,12 @@ describe('文字数の数え方（DB 設計書 D-7）', () => {
 })
 
 describe('文字数のカウンター（画面設計書 1.5）', () => {
+  it('円は読み上げず、残りの文字数だけを読み上げる（#95）', () => {
+    render(<CharCounter text="あ" max={280} />)
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
+    expect(screen.getByRole('status', { name: '残り 279 文字' })).toBeInTheDocument()
+  })
+
   it('残り 21 文字以上は数を出さない', () => {
     render(<CharCounter text={'あ'.repeat(259)} max={280} />)
     expect(screen.getByRole('status', { name: '残り 21 文字' })).toBeInTheDocument()
