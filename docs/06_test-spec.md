@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |---|---|
 | 文書番号 | 06 |
-| 版数 | 1.6 |
+| 版数 | 1.7 |
 | 作成日 | 2026-10-18 |
 | 作成者 | major182 |
 | 前提となる文書 | [01 要件定義書](01_requirements.md)、[03 DB 設計書](03_db-design.md)、[04 画面設計書](04_screen-design.md)、[05 API 設計書](05_api-design.md) |
@@ -186,6 +186,7 @@
 | E2E-04 | 2 人の利用者：投稿 → 他人がいいね・コメント → 投稿者が再読み込み | 押した人の画面で数が変わり、投稿者の画面でも増えている | BR-31〜33 | `e2e/post.spec.ts` |
 | E2E-05 | 検索 → フォロー → フォロー中タブ → フォロー解除 | フォローするとその人の投稿がフォロー中タブに出て、外すと出なくなる | BR-42、BR-50-2 | `e2e/follow.spec.ts` |
 | E2E-06 | 2 人の利用者：コメント → 投稿者が候補から選んだメンションつきで返信 → 再読み込み | 返信が字下げして出てコメントの数が増える・再読み込みすると「返信を表示（1 件）」で開ける・メンションがプロフィールへのリンクになる | BR-37、BR-60、BR-61 | `e2e/reply.spec.ts` |
+| E2E-07 | 主な画面（ログイン・登録・入力の誤り・404・タイムラインの両タブ・投稿の作成・投稿の詳細・いいねした人・プロフィール・フォロワー・検索・設定・プロフィールの編集）を開いて axe-core で調べる | WCAG 2.1 の A・AA の違反（コントラスト・ラベル・見出し・リストの構造・ARIA・見えている文字と読み上げの名前の一致など）が 0 件。自動で分かるのは一部なので、キーボードだけの操作・読み上げは別に手で確かめる | ―（要件にはない。#94 で追加） | `e2e/a11y.spec.ts` |
 
 ### 4.10 性能テスト
 
@@ -228,7 +229,7 @@
 | まとめて（CI と同じ） | `node scripts/check.ts` | backend の結合テストは Docker を使う。性能テストのシナリオは型と整形だけを確かめる |
 | backend だけ | `cd backend; ./gradlew test` | 1 クラスだけ：`./gradlew test --tests '*PostServiceUnitTests'` |
 | frontend だけ | `cd frontend; npx vitest run` | 1 ファイルだけ：`npx vitest run src/postLength.test.ts` |
-| E2E テスト | `cd frontend; npm run e2e` | Docker が要る。E2E 用の DB を起動し、API（8091）と画面（5191）を起動して動かす。初回は `npx playwright install chromium` でブラウザを入れる。CI では別のジョブ（`e2e`）で動く。`check.ts` には含めない（時間がかかるため） |
+| E2E テスト | `cd frontend; npm run e2e` | Docker が要る。E2E 用の DB を起動し、API（8091）と画面（5191）を起動して動かす。初回は `npx playwright install chromium` でブラウザを入れる。CI では別のジョブ（`e2e`）で動く。結果は HTML のレポート（`playwright-report/`）に残り、`npx playwright show-report` で開ける。CI では成功・失敗にかかわらず Actions の成果物（`playwright-report`、7 日）に保存する。`check.ts` には含めない（時間がかかるため） |
 | 性能テスト | `node scripts/perf.ts smoke` | Docker が要る。性能テスト用の DB（5434）と API（8092）を起動し、終わったらテストデータと DB を消す。CI では動かさない（08 の 7 章） |
 
 ---
@@ -253,3 +254,4 @@
 | 1.4 | 2026-10-26 | 性能テストの PT-02〜05 を追加（#86） |
 | 1.5 | 2026-10-26 | 性能テストの PT-06〜08（ブラウザでの計測）を追加（#88） |
 | 1.6 | 2026-10-28 | 応答の圧縮の IT-CO-08 を追加（#90） |
+| 1.7 | 2026-10-30 | アクセシビリティの E2E-07（axe-core）を追加。E2E の HTML レポートを毎回残す（#94） |

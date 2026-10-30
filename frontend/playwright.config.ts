@@ -15,7 +15,8 @@ export default defineConfig({
   forbidOnly: isCI,
   retries: isCI ? 1 : 0,
   timeout: 60_000,
-  reporter: isCI ? [['list'], ['html', { open: 'never' }]] : 'list',
+  // 結果を HTML のレポート（playwright-report/）にも残す。npx playwright show-report で開ける
+  reporter: [['list'], ['html', { open: 'never' }]],
   use: {
     baseURL: `http://localhost:${WEB_PORT}`,
     locale: 'ja-JP',
