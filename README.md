@@ -44,4 +44,5 @@ cd frontend && npm install && npm run dev  # 画面（http://localhost:5173/）
 | 03 | [DB 設計書](docs/03_db-design.md) |
 | 04 | [画面設計書](docs/04_screen-design.md) |
 | 05 | [API 設計書](docs/05_api-design.md) |
+| 09 | [デプロイ設計書](docs/09_deployment.md) |
 | ― | [API 仕様書（OpenAPI。コードから自動で作る）](docs/api/openapi.yaml) |

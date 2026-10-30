@@ -102,8 +102,7 @@ gh pr checks <番号>                                        # ④ 実行 ID（r
 | 04 | [画面設計書](docs/04_screen-design.md) | 画面の項目・動き・URL・メッセージの文言の正。画面の実装はこれに合わせる |
 | 05 | [API 設計書](docs/05_api-design.md) | API の方針・共通の仕様・エラーの種類（`code`）・API と画面の対応。送る値・返す値の細かい形は、自動で作る [API 仕様書](docs/api/openapi.yaml)（OpenAPI）が正 |
 | 06 | [テスト仕様書](docs/06_test-spec.md) | テストの区分（単体・結合）・観点の出し方・観点表と要件の対応の正 |
-
-今後作る予定：デプロイ設計書。
+| 09 | [デプロイ設計書](docs/09_deployment.md) | AWS の構成・費用・秘密情報の置き場所・手順・片付けの正 |
 
 ---
 
