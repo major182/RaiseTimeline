@@ -22,9 +22,9 @@ data "aws_iam_policy_document" "github_assume_role" {
 
     # このリポジトリの main だけに限る
     condition {
-      test     = "StringLike"
+      test     = "StringEquals"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:${var.github_repository}*:ref:refs/heads/main"]
+      values   = ["${var.github_subject_prefix}:ref:refs/heads/main"]
     }
   }
 }

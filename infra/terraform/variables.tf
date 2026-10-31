@@ -46,8 +46,8 @@ variable "db_instance_class" {
   default     = "db.t4g.micro"
 }
 
-variable "github_repository" {
-  description = "自動デプロイを許すリポジトリ（owner/name）"
+variable "github_subject_prefix" {
+  description = "自動デプロイを許すリポジトリの OIDC の sub の先頭。ID 入りの形式（gh api repos/<owner>/<repo>/actions/oidc/customization/sub で確かめる）"
   type        = string
-  default     = "major182/RaiseTimeline"
+  default     = "repo:major182@329081291/RaiseTimeline@1408061792"
 }
