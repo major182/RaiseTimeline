@@ -106,6 +106,7 @@
 | UT-PO-05 | 編集・削除の権限：本人／他人／ない投稿。削除では画像のファイルを DB の確定後に消すよう頼む。画面の削除の確認は、最初に「キャンセル」に焦点があり、Esc はキャンセル扱い | 分岐網羅・エラー推測 | BR-12、BR-13、NF-SE-04 | `PostServiceUnitTests`、frontend `ConfirmDialog` |
 | UT-PO-06 | 画像が 1 枚でも正しくなければ、投稿も画像も保存しない | 分岐網羅・エラー推測 | API 05 4.4 | `PostServiceUnitTests` |
 | UT-PO-07 | 画面での画像の縮小：長辺が 2048px を超える（縦長・横長・2049px）・ちょうど・下回る、アイコンは 400px。描き直して 5MB を超えた PNG は WebP に、それでも超えたら・JPEG なら E-11。GIF は描き直さない | 境界値・分岐網羅 | BR-23 | frontend `imageAttach` |
+| UT-PO-08 | 画像の URL の期限切れ：投稿の画像・アイコンの読み込みに失敗したらデータを取り直す、アイコンが未設定なら確かめない、取り直しは 1 分に 1 回（間隔の直前は取り直さず、ちょうどで取り直す） | 境界値・分岐網羅・エラー推測 | #108 | frontend `components/useImageRefresh` |
 | IT-PO-01 | 投稿・詳細・編集・削除の権限：本人／他人／未ログイン／存在しない投稿 → 成功／403／401／404（未ログインは IT-AU-04 で全 API をまとめて確かめ、編集では本文が変わらないことも確かめる） | デシジョンテーブル | BR-12、NF-SE-04 | `CreatePostTests`、`GetPostTests`、`UpdatePostTests`、`DeletePostTests`、`SecurityConfigTests` |
 | IT-PO-02 | 削除でコメント・いいね・画像も消える | 同値分割 | BR-13 | `DeletePostTests` |
 | IT-PO-03 | 画像のアップロード：5MB ちょうど・超え（413）、形式違い（415） | 境界値 | BR-21、BR-22 | `PostImageTests`、`ImageUploadsTests` |
