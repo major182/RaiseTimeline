@@ -2,6 +2,7 @@ import { Box, ButtonBase } from '@mui/material'
 import { useState } from 'react'
 import type { PostImage } from '../api/types'
 import { ImageViewer } from './ImageViewer'
+import { useImageRefresh } from './useImageRefresh'
 
 /**
  * 投稿の画像の並べ方（画面設計書 4.1）。
@@ -9,6 +10,7 @@ import { ImageViewer } from './ImageViewer'
  */
 export function PostImages({ images }: { images: PostImage[] }) {
   const [viewing, setViewing] = useState<number | null>(null)
+  const refreshImages = useImageRefresh()
   if (images.length === 0) return null
   const count = images.length
   // 1 枚のときは元の縦横の比で出す（縦に長すぎる画像は 4:5 で切る）。読み込み前に枠の大きさを決め、表示のずれを防ぐ
@@ -51,6 +53,7 @@ export function PostImages({ images }: { images: PostImage[] }) {
               src={image.url}
               alt={`画像 ${i + 1}/${count}`}
               loading="lazy"
+              onError={refreshImages}
               sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
             />
           </ButtonBase>
