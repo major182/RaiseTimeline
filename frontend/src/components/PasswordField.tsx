@@ -8,6 +8,11 @@ export function PasswordField(props: TextFieldProps) {
   return (
     <TextField
       {...props}
+      onChange={(event) => {
+        // 全角などは BR-05 で使えないので、入力の時点で取り除く
+        event.target.value = event.target.value.replace(/[^ -~]/g, '')
+        props.onChange?.(event)
+      }}
       type={visible ? 'text' : 'password'}
       slotProps={{
         input: {

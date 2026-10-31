@@ -62,7 +62,7 @@ describe('パスワードの変更（F-AU-05）', () => {
     await fill(user, ['', 'short', 'other'])
     expect(screen.getByText('入力してください')).toBeInTheDocument()
     expect(
-      screen.getByText('8〜72 文字で、英字と数字をそれぞれ 1 文字以上含めてください'),
+      screen.getByText('半角の英数字・記号 8〜72 文字で、英字と数字をそれぞれ 1 文字以上含めてください'),
     ).toBeInTheDocument()
     expect(screen.getByText('パスワードが一致しません')).toBeInTheDocument()
     expect(fetchMock.mock.calls.some((c) => c[0] === '/api/me/password')).toBe(false)

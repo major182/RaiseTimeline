@@ -24,11 +24,11 @@ describe('validateSignup（サーバーと同じ条件）', () => {
     })
   })
 
-  it.each(['password', '12345678', 'pass123', 'a1'.repeat(37)])(
+  it.each(['password', '12345678', 'pass123', 'a1'.repeat(37), 'pass1234あ', 'ｐａｓｓ1234'])(
     'パスワードの条件を満たさない：%s',
     (password) => {
       expect(validateSignup({ ...VALID, password, passwordConfirmation: password }).password).toBe(
-        '8〜72 文字で、英字と数字をそれぞれ 1 文字以上含めてください',
+        '半角の英数字・記号 8〜72 文字で、英字と数字をそれぞれ 1 文字以上含めてください',
       )
     },
   )
