@@ -97,8 +97,8 @@ class RequestValidationTests {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"abcdefgh", "12345678"})
-    @DisplayName("UT-AU-02 パスワードが英字だけ・数字だけなら PASSWORD_WEAK")
+    @ValueSource(strings = {"pass 1234", "pass1234あ", "ｐａｓｓ1234", "abcdefgh", "12345678"})
+    @DisplayName("UT-AU-02 パスワードが英字だけ・数字だけ・全角やスペースを含むなら PASSWORD_WEAK")
     void パスワードの文字の種類が足りない(String password) {
         assertThat(errorsOf(signupWithPassword(password))).containsExactly("password:PASSWORD_WEAK");
     }

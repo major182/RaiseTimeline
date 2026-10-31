@@ -1352,7 +1352,7 @@ components:
         newPassword:
           type: string
           minLength: 1
-          pattern: "^(?=.*[A-Za-z])(?=.*[0-9]).{8,72}$"
+          pattern: "^(?=.*[A-Za-z])(?=.*[0-9])[!-~]{8,72}$"
         newPasswordConfirmation:
           type: string
           minLength: 1
@@ -1764,7 +1764,7 @@ components:
         password:
           type: string
           minLength: 1
-          pattern: "^(?=.*[A-Za-z])(?=.*[0-9]).{8,72}$"
+          pattern: "^(?=.*[A-Za-z])(?=.*[0-9])[!-~]{8,72}$"
         passwordConfirmation:
           type: string
           minLength: 1

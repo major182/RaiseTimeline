@@ -70,7 +70,7 @@
 | ID | 観点 | 技法 | 要件 | 場所 |
 |---|---|---|---|---|
 | UT-AU-01 | ユーザー名：3・4・15・16 文字、使えない文字（記号・全角）。メールアドレス・ユーザー名の重複（同時の登録で DB の制約に当たった場合を含む） | 境界値・同値分割 | BR-02、BR-04 | frontend `auth/validation`、backend `RequestValidationTests`・`AuthServiceUnitTests` |
-| UT-AU-02 | パスワード：7・8・72・73 文字、英字だけ・数字だけ、確認用と不一致（登録・変更） | 境界値・同値分割 | BR-05、BR-09 | frontend `auth/validation`、backend `RequestValidationTests` |
+| UT-AU-02 | パスワード：7・8・72・73 文字、英字だけ・数字だけ、全角・スペースを含む（画面の入力欄では取り除く）、確認用と不一致（登録・変更） | 境界値・同値分割 | BR-05、BR-09 | frontend `auth/validation`・`components/PasswordField`、backend `RequestValidationTests` |
 | UT-AU-03 | 表示名：0・1・50・51 文字 | 境界値 | BR-03 | 同上 |
 | UT-AU-04 | ログインの失敗回数：4 回目までは LOGIN_FAILED・5 回目で LOGIN_LOCKED・止めている間は照合しない・15 分ちょうどで戻る・成功で回数が 0 に戻る・未登録のメールアドレスも同じ LOGIN_FAILED | 境界値・分岐網羅 | BR-08、BR-09 | `AuthServiceUnitTests`、`UserUnitTests` |
 | UT-AU-05 | リフレッシュトークン：ない・知らない・期限切れ（期限ちょうどを含む）は拒否、有効なら新しいトークンに交換、取り直しで使い終わったトークンが来たら全トークンを無効化、ログアウト後のトークンは拒否だけ | 分岐網羅・状態遷移 | BR-07 | `RefreshTokenServiceUnitTests` |

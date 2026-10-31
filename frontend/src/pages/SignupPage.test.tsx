@@ -52,7 +52,9 @@ describe('利用者登録画面（SC-02）', () => {
 
     expect(await screen.findByText('メールアドレスの形式が正しくありません')).toBeInTheDocument()
     expect(
-      screen.getByText('8〜72 文字で、英字と数字をそれぞれ 1 文字以上含めてください'),
+      screen.getByText(
+        '半角の英数字・記号 8〜72 文字で、英字と数字をそれぞれ 1 文字以上含めてください',
+      ),
     ).toBeInTheDocument()
     expect(screen.getByText('パスワードが一致しません')).toBeInTheDocument()
     expect(screen.getByText('4〜15 文字の半角英数字と「_」で入力してください')).toBeInTheDocument()
