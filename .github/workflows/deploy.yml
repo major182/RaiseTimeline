@@ -1,0 +1,69 @@
+# main へのマージの後に AWS へ配置する（デプロイ設計書 6 章）
+# AWS の環境がないときは動かさない：リポジトリの変数 DEPLOY_ENABLED が true のときだけ実行する
+# 識別子はすべて Secret で渡すので、ログでは伏せ字になる
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  api:
+    if: ${{ vars.DEPLOY_ENABLED == 'true' }}
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v7
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ap-northeast-1
+          mask-aws-account-id: true
+      - uses: aws-actions/amazon-ecr-login@v2
+      - name: イメージを作って ECR に置く
+        env:
+          REPOSITORY: ${{ secrets.ECR_REPOSITORY_URL }}
+        run: |
+          docker build -t "$REPOSITORY:latest" backend
+          docker push "$REPOSITORY:latest"
+      - name: ECS のサービスを更新して、安定するまで待つ
+        env:
+          CLUSTER: ${{ secrets.ECS_CLUSTER }}
+          SERVICE: ${{ secrets.ECS_SERVICE }}
+        run: |
+          aws ecs update-service --cluster "$CLUSTER" --service "$SERVICE" --force-new-deployment --query 'service.status' --output text
+          aws ecs wait services-stable --cluster "$CLUSTER" --services "$SERVICE"
+
+  web:
+    if: ${{ vars.DEPLOY_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ap-northeast-1
+          mask-aws-account-id: true
+      - name: 画面を作る
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+      - name: S3 に置いて、index.html のキャッシュを消す
+        env:
+          BUCKET: ${{ secrets.WEB_BUCKET }}
+          DISTRIBUTION_ID: ${{ secrets.DISTRIBUTION_ID }}
+        run: |
+          aws s3 sync frontend/dist "s3://$BUCKET" --delete --only-show-errors
+          aws cloudfront create-invalidation --distribution-id "$DISTRIBUTION_ID" --paths /index.html --query 'Invalidation.Status' --output text
