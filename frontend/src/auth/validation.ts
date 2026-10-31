@@ -7,7 +7,7 @@ import { countChars } from '../postLength'
 export type SignupErrors = Partial<Record<keyof SignupInput, string>>
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-const PASSWORD = /^(?=.*[A-Za-z])(?=.*[0-9])[ -~]{8,72}$/
+const PASSWORD = /^(?=.*[A-Za-z])(?=.*[0-9])[!-~]{8,72}$/
 const USERNAME = /^[A-Za-z0-9_]{4,15}$/
 
 export function validateSignup(input: SignupInput): SignupErrors {

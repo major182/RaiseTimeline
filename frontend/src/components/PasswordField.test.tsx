@@ -14,7 +14,8 @@ describe('PasswordField', () => {
   it.each([
     ['あｓｄｆ', ''],
     ['abcあ1', 'abc1'],
-    ['a b~1', 'a b~1'],
+    ['a b~1', 'ab~1'],
+    ['a!~1', 'a!~1'],
   ])('%s と入れると %s になる', (input, expected) => {
     render(<Form />)
     const field = screen.getByLabelText('パスワード')
