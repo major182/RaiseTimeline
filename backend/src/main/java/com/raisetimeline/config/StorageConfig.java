@@ -13,7 +13,7 @@ import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 
 /**
  * 画像の保存先を、設定（app.storage.type）で切り替える（技術選定書 4.3）。
- * local（既定）：ローカルのフォルダ。s3：S3。リージョンと権限は、AWS SDK が環境（EC2 の IAM ロールなど）から読む。
+ * local（既定）：ローカルのフォルダ。s3：S3。リージョンと権限は、AWS SDK が環境（ECS のタスクロールなど）から読む。
  */
 @Configuration
 public class StorageConfig {

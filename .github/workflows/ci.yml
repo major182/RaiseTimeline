@@ -27,6 +27,16 @@ jobs:
       # テストが書き出した API 仕様書が、コミットされたものと同じか（API を変えたら openapi.yaml もコミットする）
       - run: git diff --exit-code -- ../docs/api/openapi.yaml
 
+  # 本番のイメージを作り、起動を確かめる（デプロイ設計書 5 章）
+  image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+      - run: node scripts/image-check.ts
+
   frontend:
     runs-on: ubuntu-latest
     defaults:

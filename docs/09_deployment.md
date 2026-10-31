@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |---|---|
 | 文書番号 | 09 |
-| 版数 | 0.1 |
+| 版数 | 0.2 |
 | 作成日 | 2026-10-31 |
 | 作成者 | major182 |
 | 前提となる文書 | [01 要件定義書](01_requirements.md)、[02 技術選定書](02_tech-stack.md)、[07 ログ設計書](07_logging-design.md) |
@@ -78,9 +78,11 @@ DB の構造は起動時に Flyway が反映する（NF-MA-02）。Spring Boot �
 | 開発者の IP | `terraform.tfvars`（コミットしない） | `curl https://checkip.amazonaws.com` で確かめる。変わったら直して `apply` |
 | `*.tfstate`・`*.tfvars` | `.gitignore` に入れる | コミットの前に `git status` で確かめる |
 
-アプリに渡す環境変数：`DB_URL`・`DB_USER`・`DB_PASSWORD`・`JWT_SECRET`・`STORAGE_TYPE=s3`・`S3_BUCKET`・`APP_ENV=prod`・`APP_VERSION`。
+アプリに渡す環境変数：`DB_URL`・`DB_USER`・`DB_PASSWORD`・`JWT_SECRET`・`S3_BUCKET`・`APP_ENV=prod`・`APP_VERSION`。`AWS_REGION` と認証情報は Fargate が渡す。`STORAGE_TYPE=s3` はイメージ（`backend/Dockerfile`）で固定するので、ローカルの保存先で動くことはない。`S3_BUCKET` がなければ起動しない。
 
 ## 5. 手順
+
+イメージの確認は `node scripts/image-check.ts`（ビルド・`S3_BUCKET` がないと起動しないこと・Flyway・ヘルスチェック・画面が入っていないこと。CI の `image` ジョブでも動く）。
 
 1. `terraform apply` で ECR を作り、イメージを置く
 2. `terraform apply` で残りを作る
@@ -120,3 +122,4 @@ DB の構造は起動時に Flyway が反映する（NF-MA-02）。Spring Boot �
 | 版数 | 日付 | 内容 |
 |---|---|---|
 | 0.1 | 2026-10-31 | 初版（#98）。構成は CloudFront・S3・ALB・ECS Fargate・RDS |
+| 0.2 | 2026-10-31 | 本番イメージと確認の方法を追記（#100） |
