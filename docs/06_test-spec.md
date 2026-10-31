@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |---|---|
 | 文書番号 | 06 |
-| 版数 | 1.7 |
+| 版数 | 1.8 |
 | 作成日 | 2026-10-18 |
 | 作成者 | major182 |
 | 前提となる文書 | [01 要件定義書](01_requirements.md)、[03 DB 設計書](03_db-design.md)、[04 画面設計書](04_screen-design.md)、[05 API 設計書](05_api-design.md) |
@@ -229,6 +229,7 @@
 | まとめて（CI と同じ） | `node scripts/check.ts` | backend の結合テストは Docker を使う。性能テストのシナリオは型と整形だけを確かめる |
 | backend だけ | `cd backend; ./gradlew test` | 1 クラスだけ：`./gradlew test --tests '*PostServiceUnitTests'` |
 | frontend だけ | `cd frontend; npx vitest run` | 1 ファイルだけ：`npx vitest run src/postLength.test.ts` |
+| 本番イメージ | `node scripts/image-check.ts` | Docker が要る。イメージを作り、PostgreSQL につないで起動を確かめる（デプロイ設計書 5 章）。CI の `image` ジョブでも動く |
 | E2E テスト | `cd frontend; npm run e2e` | Docker が要る。E2E 用の DB を起動し、API（8091）と画面（5191）を起動して動かす。初回は `npx playwright install chromium` でブラウザを入れる。CI では別のジョブ（`e2e`）で動く。結果は HTML のレポート（`playwright-report/`）に残り、`npx playwright show-report` で開ける。CI では成功・失敗にかかわらず Actions の成果物（`playwright-report`、7 日）に保存する。`check.ts` には含めない（時間がかかるため） |
 | 性能テスト | `node scripts/perf.ts smoke` | Docker が要る。性能テスト用の DB（5434）と API（8092）を起動し、終わったらテストデータと DB を消す。CI では動かさない（08 の 7 章） |
 
@@ -254,4 +255,5 @@
 | 1.4 | 2026-10-26 | 性能テストの PT-02〜05 を追加（#86） |
 | 1.5 | 2026-10-26 | 性能テストの PT-06〜08（ブラウザでの計測）を追加（#88） |
 | 1.6 | 2026-10-28 | 応答の圧縮の IT-CO-08 を追加（#90） |
+| 1.8 | 2026-10-31 | 本番イメージの確認を追加（#100） |
 | 1.7 | 2026-10-30 | アクセシビリティの E2E-07（axe-core）を追加。E2E の HTML レポートを毎回残す（#94） |
