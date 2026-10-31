@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |---|---|
 | 文書番号 | 05 |
-| 版数 | 0.8 |
+| 版数 | 0.9 |
 | 作成日 | 2026-10-09 |
 | 作成者 | major182 |
 | 前提となる文書 | [01 要件定義書](01_requirements.md)、[01-1 機能一覧](01-1_feature-list.md)、[03 DB 設計書](03_db-design.md)、[04 画面設計書](04_screen-design.md) |
@@ -80,7 +80,7 @@ React（画面）と Spring Boot（サーバー）の**約束ごと**。方針�
   "instance": "/api/auth/signup",
   "code": "VALIDATION_FAILED",
   "errors": [
-    { "field": "password", "code": "PASSWORD_WEAK", "message": "8〜72 文字で、英字と数字をそれぞれ 1 文字以上含めてください" }
+    { "field": "password", "code": "PASSWORD_WEAK", "message": "半角の英数字・記号 8〜72 文字で、英字と数字をそれぞれ 1 文字以上含めてください" }
   ]
 }
 ```
@@ -292,3 +292,4 @@ API 仕様書には載せない（Spring Boot の機能か、開発環境だけ�
 | 0.6 | 2026-10-10 | Swagger UI の導入に合わせ、使い方と本番で無効になることを追記（5 章） |
 | 0.7 | 2026-10-14 | API 仕様書（OpenAPI）の自動生成を追加（5.1）。送る値・返す値・API ごとのエラーは仕様書を正とし、3 章を決めごとだけに、4 章を API と画面の対応と決めごとだけに減らした |
 | 0.8 | 2026-10-18 | 返信を追加（3.5 の `parentId`・`replyCount`、4.5 の返信の一覧と `parentId`）。メンションは画面だけで扱うことを明記（4.5） |
+| 0.9 | 2026-10-31 | PASSWORD_WEAK の文言を更新（#110） |
