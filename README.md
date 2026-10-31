@@ -26,7 +26,7 @@
 
 ## デモ動画
 
-[デモ動画を見る](docs/media/RaiseTimeline_README用デモ動画.mp4)
+https://github.com/user-attachments/assets/099a1b90-6019-4018-9fe7-833e0be0ba3e
 
 - 表示されている利用者・投稿は、説明のための架空のデータです。画像は Lorem Picsum の写真です
 
