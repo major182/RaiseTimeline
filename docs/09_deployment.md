@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |---|---|
 | 文書番号 | 09 |
-| 版数 | 0.2 |
+| 版数 | 0.3 |
 | 作成日 | 2026-10-31 |
 | 作成者 | major182 |
 | 前提となる文書 | [01 要件定義書](01_requirements.md)、[02 技術選定書](02_tech-stack.md)、[07 ログ設計書](07_logging-design.md) |
@@ -60,7 +60,7 @@ DB の構造は起動時に Flyway が反映する（NF-MA-02）。Spring Boot �
 
 | 項目 | 単価 | 3 日（72 時間） |
 |---|---|---|
-| Fargate ARM 0.5 vCPU・1GB | 約 $0.025／時 | 約 $1.8 |
+| Fargate ARM 0.5 vCPU・1GB（料金 API で確認） | $0.0247／時 | $1.8 |
 | ALB | 約 $0.025／時 + 利用量 | 約 $1.9 |
 | RDS db.t4g.micro | 約 $0.03／時 | 約 $2.2 |
 | 公開 IPv4（Fargate 1） | $0.005／時 | $0.4 |
@@ -84,7 +84,7 @@ DB の構造は起動時に Flyway が反映する（NF-MA-02）。Spring Boot �
 
 イメージの確認は `node scripts/image-check.ts`（ビルド・`S3_BUCKET` がないと起動しないこと・Flyway・ヘルスチェック・画面が入っていないこと。CI の `image` ジョブでも動く）。
 
-1. `terraform apply` で ECR を作り、イメージを置く
+1. `infra/terraform` で `terraform apply -target=aws_ecr_repository.api` を実行して ECR を作り、ARM のイメージに `latest` を付けて置く
 2. `terraform apply` で残りを作る
 3. 画面をビルドして S3 に置く
 4. 次の確認を行う
@@ -123,3 +123,4 @@ DB の構造は起動時に Flyway が反映する（NF-MA-02）。Spring Boot �
 |---|---|---|
 | 0.1 | 2026-10-31 | 初版（#98）。構成は CloudFront・S3・ALB・ECS Fargate・RDS |
 | 0.2 | 2026-10-31 | 本番イメージと確認の方法を追記（#100） |
+| 0.3 | 2026-10-31 | Terraform の手順と Fargate の単価を追記（#102） |
